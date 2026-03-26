@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
+    <title>Alpha Cordova Android Test v2.0</title>
+    <style>
+        body { 
+            background: #121212; 
+            color: white; 
+            font-family: sans-serif; 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .status-box {
+            padding: 20px;
+            border-radius: 10px;
+            background: #1e1e1e;
+            display: inline-block;
+            margin: 0 auto;
+            border: 1px solid #333;
+        }
+        #deviceready.blink { animation: fade 2s infinite; color: #ffca28; }
+        #deviceready.ready { color: #00e676; }
+        
+        .engine { color: #888; margin-top: 20px; font-size: 0.8rem; }
+
+        @keyframes fade {
+            from { opacity: 1.0; }
+            50% { opacity: 0.4; }
+            to { opacity: 1.0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="status-box">
+        <h1>🚀 Alpha Cordova Android Test</h1>
+        <p id="deviceready" class="blink">Connecting to Device...</p>
+        <p class="engine">v2.0.0 | API 36 | Android 15</p>
+    </div>
+
+    <script src="cordova.js"></script>
+    
+    <script>
+        document.addEventListener('deviceready', onDeviceReady, false);
+
+        function onDeviceReady() {
+            console.log('Running cordova-' + cordova.platformId + '@' + cordova.version);
+            
+            const element = document.getElementById('deviceready');
+            element.innerHTML = 'Device is Ready';
+            element.className = 'ready';
+            
+            // Prove it's working by changing the background
+            document.body.style.background = '#0a0a0a';
+        }
+    </script>
+</body>
+</html>
