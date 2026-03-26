@@ -1,0 +1,11 @@
+# --- Alpha Cordova Build: Signing Template ---
+# 1. Copy this file to 'release-signing.properties'
+# 2. Update the values below with your keystore details
+# 3. Keep your .keystore file in the project root
+
+keyStore=/app/your-release-key.keystore
+keyAlias=your-key-alias
+keyStorePassword=your_keystore_password
+keyAliasPassword=your_key_alias_password
+
+# NOTE: Do NOT commit your actual .properties file or .keystore to Git!

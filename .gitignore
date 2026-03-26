@@ -1,0 +1,35 @@
+# --- Cordova/Android Build Artifacts ---
+platforms/
+plugins/
+www/
+node_modules/
+bin/
+gen/
+out/
+
+# --- Docker & System ---
+.gradle/
+.npm/
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+
+# --- Security & Signing (CRITICAL) ---
+*.keystore
+*.jks
+*.p12
+release-signing.properties
+
+# --- Build Outputs ---
+# We ignore these because the scripts regenerate them
+# Users should grab them from the /outputs/ folder, not Git
+*.apk
+*.aab
+*.idsig
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
