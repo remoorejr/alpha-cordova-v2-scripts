@@ -1,4 +1,3 @@
-```markdown
 # 🚀 Alpha Cordova Android Automation Suite v2.0
 
 A high-performance, Dockerized development pipeline for **Cordova** targeting **Android 15 (API 36)**. 
@@ -12,13 +11,13 @@ Tested with Windows 11 Pro
 ## 📂 Required Project Structure
 The automation scripts must be placed in your **Cordova Project Root**. The container expects to find your configuration and web assets at the top level.
 
-```text
+```yaml
 My-Cordova-App/
-├── config.xml              <-- REQUIRED (Project settings & versioning)
-├── www/                    <-- REQUIRED (Your HTML/JS/CSS source)
-├── docker-compose.yml      <-- (From this suite)
-├── release-build.ps1       <-- (From this suite)
-├── .gitignore              <-- (From this suite)
+├── config.xml              # REQUIRED (Project settings & versioning)
+├── www/                    # REQUIRED (Your HTML/JS/CSS source)
+├── docker-compose.yml      # (From this suite)
+├── release-build.ps1       # (From this suite)
+├── .gitignore              # (From this suite)
 ├── release-signing.properties.example
 └── ... (all .bat files)
 ```
@@ -74,7 +73,7 @@ Connect your device and run **`Build-And-Install.bat`**. This will pull the v2.0
 To verify your environment is set up correctly, follow these steps to run the included "Hello World" app:
 
 1. **Connect your Android Device** via USB and ensure "USB Debugging" is enabled.
-2. **Open a Terminal** in this project folder.
+2. **Open a Terminal** in the project root folder.
 3. **Run the Initial Build**:
    ```batch
    .\Build-And-Install.bat
@@ -84,22 +83,22 @@ To verify your environment is set up correctly, follow these steps to run the in
    * On your phone, the app should open with a dark background.
    * The status should change from **"Connecting..." (Blinking Yellow)** to **"Device is Ready" (Solid Green)**. This confirms the Cordova bridge is active.
 5. **Test "Turbo Sync"**:
-   * Open `www/index.html` in your favorite editor.
+   * Open `www/index.html` in your editor.
    * Change `<h1>🚀 Alpha Cordova</h1>` to `<h1>🔥 It Works!</h1>`.
    * Run the sync script:
      ```batch
      .\Quick-Update.bat
      ```
    * Your app should refresh on the device in ~10 seconds with the new text!
+
 ---
-```
 
 ## 🔐 Signing Your Production Build
 To generate a signed `.aab` for the Google Play Store:
 
-1. Rename `release-signing.properties.example` to **`release-signing.properties`**.
+1. Locate **`release-signing.properties.example`** in the project root and rename it to **`release-signing.properties`**.
 2. Update the values with your keystore path and passwords.
-   * *Note: The path must be relative to the container, e.g., `keyStore=/app/my-release.keystore`*
+   > **Note:** The `keyStore` path must be relative to the **Docker container's internal filesystem**. If your keystore is in your project root, use: `keyStore=/app/my-release.keystore`
 3. Place your `.keystore` file in the project root.
 4. Run **`Build-Production.bat`**.
 
@@ -115,4 +114,4 @@ To generate a signed `.aab` for the Google Play Store:
 ### 🤝 Credits
 * **Lead Developer:** [remoorejr](https://github.com/remoorejr)
 * **Architecture & Automation Assistant:** [Gemini AI](https://gemini.google.com)
-```
+
