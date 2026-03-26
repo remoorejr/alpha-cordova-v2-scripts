@@ -1,28 +1,45 @@
 @echo off
 setlocal
-title Alpha Cordova Android: Full Build & Install
+title Alpha Cordova Android: DEBUG BUILD AND INSTALL
 
 echo ===================================================
-echo 🛠️  CORDOVA: Full Platform Reset ^& Install
+echo CORDOVA: Debug Build Tool (API 36)
 echo ===================================================
-echo [!] This will:
-echo     1. Wipe existing Android platform
-echo     2. Re-initialize Android 15 (API 36)
-echo     3. Increment version in config.xml
-echo     4. Build and Deploy Debug APK to device
 echo.
-set /p confirm="Perform full environment reset? (Y/N): "
-if /i "%confirm%" neq "Y" goto :cancel
+echo [1] Full Reset: Wipe platform, Re-init, Build and Install
+echo [2] Turbo Sync: UI/JS/CSS updates only (Fast Sync)
+echo [3] Cancel
+echo.
 
-echo 🚀 Initializing Heavy Build...
-powershell.exe -ExecutionPolicy Bypass -File .\release-build.ps1 -Install
+set /p choice="Select an option (1-3): "
+
+:: Define the base command to avoid parsing issues inside IF blocks
+set PS_CMD=powershell.exe -ExecutionPolicy Bypass -File ".\release-build.ps1"
+
+if "%choice%"=="1" goto :full
+if "%choice%"=="2" goto :turbo
+if "%choice%"=="3" goto :cancel
+goto :cancel
+
+:full
+echo.
+echo Initializing Full Environment Reset and Build...
+%PS_CMD% -Install
+goto :end
+
+:turbo
+echo.
+echo Initializing Turbo Sync...
+%PS_CMD% -Install -Quick
 goto :end
 
 :cancel
 echo.
-echo ❌ Build aborted.
+echo Build aborted.
 echo.
+goto :end
 
 :end
 echo ===================================================
+echo Process Complete.
 pause

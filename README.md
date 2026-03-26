@@ -1,117 +1,130 @@
-# 🚀 Alpha Cordova Android Automation Suite v2.0
+# 🚀 Alpha Cordova Android Automation Suite v2.4.1
 
-A high-performance, Dockerized development pipeline for **Cordova** targeting **Android 15 (API 36)**. 
+A high-performance, Dockerized development pipeline for **Cordova** targeting **Android 15 (API 36 / Baklava)**. 
 
 This suite works in tandem with the [remoorejr/alpha-cordova-android-build](https://hub.docker.com/repository/docker/remoorejr/alpha-cordova-android-build) Docker image to provide instant UI syncing, automated versioning, and professional release management.
 
-Tested with Windows 11 Pro
+**Tested with Windows 11 Pro & PowerShell 5.1/7+**
 
 ---
 
 ## 📂 Required Project Structure
-The automation scripts must be placed in your **Cordova Project Root**. The container expects to find your configuration and web assets at the top level.
+Place these automation scripts in your **Cordova Project Root**:
 
 ```yaml
 My-Cordova-App/
 ├── config.xml              # REQUIRED (Project settings & versioning)
 ├── www/                    # REQUIRED (Your HTML/JS/CSS source)
-├── docker-compose.yml      # (From this suite)
-├── release-build.ps1       # (From this suite)
-├── .gitignore              # (From this suite)
-├── release-signing.properties.example
-└── ... (all .bat files)
+├── docker-compose.yml      # Docker orchestration
+├── release-build.ps1       # The "Brain" (PowerShell Build Engine)
+├── Build-And-Install.bat   # Daily Dev: Debug/Turbo Sync
+├── Production-Release.bat  # Deployment: AAB/Signing/Tagging
+├── release-signing.properties  # (Optional) For automated AAB signing
+└── ... 
 ```
 
 ---
 
 ## 💎 Key Features
+* **Git-Aware Intelligence:** Automatically detects if the project is in a Git repo. If found, it handles versioning and tagging; if not, it performs a "Production-Lite" build without crashing.
+* **Pre-Flight Diagnostics:** Automatically checks for **JDK 17+** on the host, as required by the Android 15 (API 36) build tools.
 * **Turbo Sync:** Update your app on a physical device in <10 seconds by bypassing Gradle for `www/` changes.
 * **Persistent Caching:** Uses Docker Named Volumes to cache Gradle and NPM dependencies, slashing build times.
-* **API 36 Ready:** Pre-configured with Android 15 SDK, Node.js 22, and Gradle 8.12.
-* **Auto-Versioning:** Automatically increments `config.xml` versions and `android-versionCode`.
-* **Smart Changelogs & Tagging:** Generates a `CHANGELOG.md` and creates Git tags (e.g., `v2.0.1`) for every release.
+* **Device Detection:** Smart ADB filtering ensures the script won't hang if your phone is unplugged.
 
 ---
 
 ## 🛠️ Installation & Setup
 
 ### 1. Prerequisites
-* **PowerShell** installed.
 * **Docker Desktop** installed and running.
-* **ADB (Android Debug Bridge)** installed on your host machine and in your System PATH.
+* **JDK 17 or 21** installed on the host machine.
+* **ADB (Android Debug Bridge)** in your System PATH.
 * A physical Android device with **USB Debugging** enabled.
 
 ### 2. Configuration
-Open the included `docker-compose.yml` and update your Git identity. This is required for the automated tagging system to function inside the container:
+Open `docker-compose.yml` and update your Git identity for the automated tagging system:
 
 ```yaml
     environment:
       - GIT_AUTHOR_NAME=Your Name
       - GIT_AUTHOR_EMAIL=your@email.com
-      - GIT_COMMITTER_NAME=Your Name
-      - GIT_COMMITTER_EMAIL=your@email.com
 ```
-
-### 3. Initialization
-Connect your device and run **`Build-And-Install.bat`**. This will pull the v2.0 image, initialize the Android 15 platform, and deploy a debug build to your phone.
 
 ---
 
 ## 🎮 Command Reference
 
-| Script | Action | Version Bump? | Use Case |
+| Script | Mode | Git Required? | Result |
 | :--- | :--- | :--- | :--- |
-| **`Quick-Update.bat`** | Turbo Sync | No | Rapid UI/JS/CSS iteration (10s sync). |
-| **`Build-Debug-Only.bat`** | Build `.apk` | No | Generating a test file for QA. |
-| **`Build-And-Install.bat`** | Full Install | **Yes** | Testing native plugins or new releases. |
-| **`Build-Production.bat`** | Build `.aab` | **Yes** | **Final Play Store submission.** |
+| **`Build-And-Install.bat`** (Opt 1) | **Full Build** | No | Wipes platform, re-inits API 36, installs `.apk`. |
+| **`Build-And-Install.bat`** (Opt 2) | **Turbo Sync** | No | Instant UI/JS sync (<10s) to device. |
+| **`Production-Release.bat`** | **Release** | **Yes*** | Bumps version, updates Changelog, creates `.aab`. |
+
+> **Note:** If `Production-Release.bat` is run outside of a Git repo, it will still generate a production `.aab` but will skip the version bump and tagging steps.
 
 ---
 
-## 🚀 Quick Start Guide (Testing the Template)
+## 🚀 Quick Start Guide
 
-To verify your environment is set up correctly, follow these steps to run the included "Hello World" app:
-
-1. **Connect your Android Device** via USB and ensure "USB Debugging" is enabled.
-2. **Open a Terminal** in the project root folder.
-3. **Run the Initial Build**:
-   ```batch
-   .\Build-And-Install.bat
-   ```
-   *This will pull the Docker image, initialize the Android platform, and install the app on your device.*
-4. **Verify the App**: 
-   * On your phone, the app should open with a dark background.
-   * The status should change from **"Connecting..." (Blinking Yellow)** to **"Device is Ready" (Solid Green)**. This confirms the Cordova bridge is active.
-5. **Test "Turbo Sync"**:
-   * Open `www/index.html` in your editor.
-   * Change `<h1>🚀 Alpha Cordova</h1>` to `<h1>🔥 It Works!</h1>`.
-   * Run the sync script:
-     ```batch
-     .\Quick-Update.bat
-     ```
-   * Your app should refresh on the device in ~10 seconds with the new text!
+1. **Connect your Android Device** via USB.
+2. **Run the Initial Build**:
+   Double-click **`Build-And-Install.bat`** and select **Option 1**.
+   *This pulls the Docker image, initializes the platform, and deploys the debug app.*
+3. **Test "Turbo Sync"**:
+   * Change a line in `www/index.html`.
+   * Run **`Build-And-Install.bat`** and select **Option 2**.
+   * Your app refreshes on the device almost instantly.
 
 ---
 
 ## 🔐 Signing Your Production Build
 To generate a signed `.aab` for the Google Play Store:
 
-1. Locate **`release-signing.properties.example`** in the project root and rename it to **`release-signing.properties`**.
-2. Update the values with your keystore path and passwords.
-   > **Note:** The `keyStore` path must be relative to the **Docker container's internal filesystem**. If your keystore is in your project root, use: `keyStore=/app/my-release.keystore`
-3. Place your `.keystore` file in the project root.
-4. Run **`Build-Production.bat`**.
+1. Rename `release-signing.properties.example` to **`release-signing.properties`**.
+2. Update the credentials. Use the container path for your keystore:
+   `keyStore=/app/my-release.keystore`
+3. Run **`Production-Release.bat`**.
+
+---
+
+## 🏁 Pre-Flight Release Checklist
+Before running **`Production-Release.bat`**, verify these settings in your `config.xml`:
+
+1.  **Version Consistency**:
+    * [ ] Is `version="x.y.z"` higher than the current version in the Play Store?
+    * [ ] Is `android-versionCode` an integer higher than the last upload? (The script auto-increments this, but it's good to double-check).
+2.  **API Target (Baklava/API 36)**:
+    * [ ] `<preference name="android-targetSdkVersion" value="36" />` is set.
+    * [ ] `<preference name="android-compileSdkVersion" value="36" />` is set (Required for Java 17+ compatibility).
+3.  **App Identity**:
+    * [ ] Does the `<widget id="com.your.id">` match your Play Store application ID?
+    * [ ] Is the `<name>` tag exactly how you want it to appear on the user's home screen?
+4.  **Signing Assets**:
+    * [ ] Is your `.keystore` file present in the root directory?
+    * [ ] Does `release-signing.properties` contain the correct `keyAlias` and passwords?
+5.  **Git Status**:
+    * [ ] Have you committed all "manual" code changes? (The script only auto-commits the version bump and changelog).
+
+---
+
+### 📦 After the Build
+Once the script finishes:
+1.  Locate the `.aab` file in `platforms/android/app/build/outputs/bundle/release/`.
+2.  Upload this file to the **Internal Testing** or **Production** track in the [Google Play Console](https://play.google.com/apps/publish).
+3.  Check the **Changelog.md** to ensure your recent Git commits were captured correctly in the "Logs" section.
 
 ---
 
 ## ❓ Troubleshooting
-* **ADB Connection:** If the container cannot find your phone, ensure your host ADB server is running: `adb devices`.
-* **Permissions:** If you encounter "Permission Denied" on Linux/WSL2, ensure your user has a UID/GID of 1000 (default in `docker-compose.yml`).
-* **Clean Build:** If the environment becomes unstable, delete the `platforms/` folder and run `Build-And-Install.bat` again.
+* **'Install' is not recognized:** This was a legacy CMD bug fixed in v2.4.0+. Ensure you are using the latest `.bat` files provided in the suite.
+* **Missing Artifact:** If the build finishes but the file isn't found, ensure your `config.xml` has the correct `<widget id="...">` matching your expected output.
+* **JDK Warning:** If you see a JDK warning, the build might still work inside Docker, but you should upgrade your host JDK to 17+ for optimal compatibility with API 36 tools.
 
 ---
----
+
 ### 🤝 Credits
 * **Lead Developer:** [remoorejr](https://github.com/remoorejr)
-* **Architecture & Automation Assistant:** [Gemini AI](https://gemini.google.com)
+* **Automation Architecture:** [Gemini AI](https://gemini.google.com)
 
+---

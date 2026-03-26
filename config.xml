@@ -1,18 +1,17 @@
-<?xml version='1.0' encoding='utf-8'?>
-<widget id="com.alpha.boilerplate" version="1.0.0" android-versionCode="1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>Alpha Cordova v2</name>
-    <description>Alpha Cordova Android Build Template</description>
-    <author email="dev@example.com" href="https://github.com/remoorejr">Alpha Dev Team</author>
-    
-    <content src="index.html" />
-    <access origin="*" />
-    <allow-intent href="http://*/*" />
-    <allow-intent href="https://*/*" />
-    
-    <platform name="android">
-        <preference name="AndroidXEnabled" value="true" />
-        <preference name="GradleVersion" value="8.12" />
-        <preference name="android-minSdkVersion" value="24" />
-        <preference name="android-targetSdkVersion" value="35" />
-    </platform>
+﻿<?xml version="1.0" encoding="utf-8"?>
+<widget id="com.alpha.boilerplate" version="1.0.5" android-versionCode="6" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+  <name>Alpha Cordova v2</name>
+  <description>Alpha Cordova Android Build Template</description>
+  <author email="dev@example.com" href="https://github.com/remoorejr">Alpha Dev Team</author>
+  <content src="index.html" />
+  <access origin="*" />
+  <allow-intent href="http://*/*" />
+  <allow-intent href="https://*/*" />
+  <platform name="android">
+    <preference name="AndroidXEnabled" value="true" />
+    <preference name="GradleVersion" value="8.12" />
+    <preference name="android-minSdkVersion" value="24" />
+    <preference name="android-targetSdkVersion" value="36" />
+    <preference name="android-compileSdkVersion" value="36" />
+  </platform>
 </widget>
