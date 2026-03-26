@@ -111,6 +111,8 @@ To generate a signed `.aab` for the Google Play Store:
 * **Clean Build:** If the environment becomes unstable, delete the `platforms/` folder and run `Build-And-Install.bat` again.
 
 ---
-*Maintained by Robert Moore | @remoorejr | VP Mobile Development, Alpha Software, Inc.*
-*Powered by Docker & PowerShell.*
+---
+### 🤝 Credits
+* **Lead Developer:** [remoorejr](https://github.com/remoorejr)
+* **Architecture & Automation Assistant:** [Gemini AI](https://gemini.google.com)
 ```
