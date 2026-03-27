@@ -1,7 +1,7 @@
 # --- Cordova/Android Build Artifacts ---
 platforms/
 plugins/
-www/
+www/lib/
 node_modules/
 bin/
 gen/
@@ -29,7 +29,13 @@ release-signing.properties
 *.idsig
 
 # --- IDEs ---
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
+
+# --- Automation Suite ---
+# Keep the scripts, but ignore local temporary logs
+release-build-log.txt
