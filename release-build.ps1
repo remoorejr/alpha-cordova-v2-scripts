@@ -63,7 +63,6 @@ if ($Release -and -not $Quick -and $isGitRepo) {
             $oldContent = Get-Content $CHANGELOG_FILE -Raw
             Set-Content $CHANGELOG_FILE -Value ($header + "`n" + $oldContent)
         } else {
-            "# Changelog`n`n" + $header | Set-Content $CHANGELOG_FILE
             Set-Content $CHANGELOG_FILE -Value ("# Changelog`n`n" + $header)
         }
         $NeedsCommit = $true

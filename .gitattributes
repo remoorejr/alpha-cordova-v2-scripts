@@ -1,2 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Force shell scripts and powershell to stay LF for Docker compatibility
+*.ps1 text eol=lf
+*.sh text eol=lf
+
+# Batch files must stay CRLF for Windows
+*.bat text eol=crlf
