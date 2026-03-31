@@ -1,97 +1,61 @@
 <#
 .SYNOPSIS
-    Environment Validator for Alpha Cordova Automation Suite v2.2.0.
-    Checks for PowerShell version, Docker, WSL 2, and JDK requirements.
+    Alpha Cordova Environment Diagnostic v2.3.0
 #>
 
-Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "   ALPHA CORDOVA ENVIRONMENT SANITY CHECK (v2.2.0)" -ForegroundColor Cyan
-Write-Host "========================================================" -ForegroundColor Cyan
-$report = @()
+Write-Host "--- Alpha Cordova v2.3.0 Environment Check ---" -ForegroundColor Cyan
 
-# 1. PowerShell Version Check
-$psVer = $PSVersionTable.PSVersion.Major
-if ($psVer -lt 7) {
-    Write-Host "[!] PowerShell $psVer detected. Note: Script v2.2.0 is 5.1 compatible," -ForegroundColor Yellow
-    Write-Host "    but modern PowerShell 7.0+ is recommended for performance." -ForegroundColor Yellow
-    $report += "PowerShell: v$psVer (Legacy 5.1 Mode)"
+$ready = $true
+
+# 1. PowerShell Check
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    Write-Host "[!] PowerShell 5.1 detected. v2.3.0 is compatible, but PS 7+ is faster." -ForegroundColor Yellow
 } else {
-    Write-Host "[OK] PowerShell $psVer detected." -ForegroundColor Green
-    $report += "PowerShell: v$psVer (Modern)"
+    Write-Host "[OK] PowerShell $($PSVersionTable.PSVersion.Major) detected." -ForegroundColor Green
 }
 
-# 2. Docker Status Check
-try {
-    $dockerCheck = docker version --format '{{.Server.Version}}' 2>$null
-    if ($null -ne $dockerCheck) {
-        Write-Host "[OK] Docker Engine is running (v$dockerCheck)." -ForegroundColor Green
-        $report += "Docker: Running"
-    } else { throw }
-} catch {
-    Write-Host "[FAIL] Docker Engine is not running. Please start Docker Desktop." -ForegroundColor Red
-    $report += "Docker: NOT FOUND/NOT RUNNING"
+# 2. Docker Check
+$dockerCheck = docker info 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "[FAIL] Docker is not running or not installed." -ForegroundColor Red
+    $ready = $false
+} else {
+    $dVer = (docker version --format '{{.Server.Version}}')
+    Write-Host "[OK] Docker Engine is running (v$dVer)." -ForegroundColor Green
 }
 
-# 3. WSL Version Check
+# 3. WSL Check (CRITICAL)
+$wslStatus = wsl -l -v 2>$null | Out-String
+if ($wslStatus -match "1\s*$") {
+    Write-Host "[FAIL] WSL 1 detected. v2.3.0 REQUIRES WSL 2 for Named Volumes." -ForegroundColor Red
+    Write-Host "       Run: 'wsl --set-default-version 2'" -ForegroundColor Gray
+    $ready = $false
+} elseif ($wslStatus -match "2\s*$") {
+    Write-Host "[OK] WSL 2 detected (High Performance Mode)." -ForegroundColor Green
+} else {
+    Write-Host "[WARN] Could not verify WSL version. Ensure WSL 2 is installed." -ForegroundColor Yellow
+}
+
+# 4. JDK Check
 try {
-    # We check specifically for the presence of version 2 in the output
-    $wslList = wsl -l -v | Out-String
-    if ($wslList -match " 2") {
-        Write-Host "[OK] WSL 2 Backend detected." -ForegroundColor Green
-        $report += "WSL: Version 2"
+    $javaVer = java -version 2>&1 | Out-String
+    if ($javaVer -match 'version "17') {
+        Write-Host "[OK] JDK 17 detected." -ForegroundColor Green
     } else {
-        Write-Host "[FAIL] WSL 1 detected. Docker permissions and volumes will fail." -ForegroundColor Red
-        Write-Host "       Run 'wsl --set-default-version 2' to upgrade." -ForegroundColor Yellow
-        $report += "WSL: Version 1 (NEEDS UPGRADE)"
+        Write-Host "[FAIL] JDK 17 is required for Android 15 (API 36)." -ForegroundColor Red
+        $ready = $false
     }
 } catch {
-    Write-Host "[FAIL] WSL is not installed. Required for Docker Desktop backend." -ForegroundColor Red
-    $report += "WSL: NOT FOUND"
+    Write-Host "[FAIL] Java not found." -ForegroundColor Red
+    $ready = $false
 }
 
-# 4. JDK 17+ Check (Required for Android API 36)
-try {
-    $javaOut = java -version 2>&1 | Out-String
-    if ($javaOut -match 'version "(\d+)') {
-        $jVer = [int]$Matches[1]
-        if ($jVer -ge 17) {
-            Write-Host "[OK] JDK $jVer detected." -ForegroundColor Green
-            $report += "JDK: v$jVer"
-        } else {
-            Write-Host "[FAIL] JDK $jVer detected. API 36 requires JDK 17+." -ForegroundColor Red
-            $report += "JDK: v$jVer (OUTDATED)"
-        }
-    } else { throw }
-} catch {
-    Write-Host "[FAIL] Java (JDK) not found on host path." -ForegroundColor Red
-    $report += "JDK: NOT FOUND"
-}
-
-# 5. Git Presence Check
-try {
-    $gitVer = git --version
-    Write-Host "[OK] $gitVer detected." -ForegroundColor Green
-    $report += "Git: Installed"
-} catch {
-    Write-Host "[WARNING] Git not found. Auto-versioning and tagging will be disabled." -ForegroundColor Yellow
-    $report += "Git: NOT FOUND"
-}
-
-Write-Host "`n--- Final Summary ---" -ForegroundColor Cyan
-foreach ($item in $report) {
-    if ($item -match "FAIL|OUTDATED") {
-        Write-Host " [X] $item" -ForegroundColor Red
-    } elseif ($item -match "WARNING") {
-        Write-Host " [!] $item" -ForegroundColor Yellow
-    } else {
-        Write-Host " [√] $item" -ForegroundColor Green
-    }
-}
-Write-Host "----------------------"
-Write-Host "Ready for Alpha Cordova v2.2.0?" -NoNewline
-if ($report -match "FAIL") {
-    Write-Host " NO (Fix the Red items above)" -ForegroundColor Red
+# --- Final Summary ---
+Write-Host "`n------------------------------------"
+if ($ready) {
+    Write-Host " READY FOR ALPHA CORDOVA v2.3.0: YES " -BackgroundColor Green -ForegroundColor White
 } else {
-    Write-Host " YES" -ForegroundColor Green
+    Write-Host " READY FOR ALPHA CORDOVA v2.3.0: NO  " -BackgroundColor Red -ForegroundColor White
+    Write-Host " (Please fix [FAIL] items above) " -ForegroundColor Yellow
 }
-Write-Host "----------------------`n"
+Write-Host "------------------------------------"

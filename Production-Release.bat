@@ -18,8 +18,8 @@ if /i "%confirm%" neq "Y" goto :cancel
 
 :: --- New Step 2: Manual Version Input ---
 echo.
-echo [?] To auto-increment (e.g. 2.1.0 -> 2.1.1), press ENTER.
-echo [?] To force a version (e.g. 2.2.0), type it below.
+echo [?] To auto-increment (e.g. 2.3.0 -> 2.3.1), press ENTER.
+echo [?] To force a version (e.g. 2.3.0), type it below.
 set /p manual_version="Target Version: "
 
 :: --- Existing Step 3: Install Prompt ---

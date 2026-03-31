@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   builder:
     image: remoorejr/alpha-cordova-android-build:latest
@@ -7,26 +5,20 @@ services:
     user: cordovauser
     working_dir: /home/cordovauser/app
     volumes:
-      # 1. Bind mount for your source code (Windows <-> Container)
       - .:/home/cordovauser/app
-      
-      # 2. Anonymous volume to prevent Windows permission issues on the config folder
-      - /home/cordovauser/.config
-
-      # 3. Named volumes for high-performance caching (Stored inside Docker's Linux VM)
-      - gradle_cache:/home/cordovauser/.gradle
-      - npm_cache:/home/cordovauser/.npm
-
+      - /home/cordovauser/app/.config
+      - gradle_cache:/home/cordovauser/app/.gradle
+      - npm_cache:/home/cordovauser/app/.npm
     environment:
-    
       - GIT_USER_NAME=Your Name
       - GIT_USER_EMAIL=your@email.com
-    
-    # Keeps the container interactive for ADB and terminal access
+      - GRADLE_USER_HOME=/home/cordovauser/app/.gradle
+      - NPM_CONFIG_CACHE=/home/cordovauser/app/.npm
+      # Ensures NPM doesn't try to use root for global installs
+      - npm_config_prefix=/home/cordovauser/app/.npm-global 
     tty: true
     stdin_open: true
 
-# volumes
 volumes:
   gradle_cache:
   npm_cache:

@@ -1,4 +1,20 @@
-## [2.2.0] - 2026-03-31
+## [2.3.0] - 2026-03-31
+### 🚀 Added
+* **Master Edition Consolidation:** Merged high-performance caching with advanced release automation into a single robust engine.
+* **Verify-Environment.bat:** Added a one-click batch wrapper to launch diagnostics without needing to manually bypass PowerShell execution policies.
+* **Folder Shadowing Technique:** Updated `docker-compose.yml` to map Named Volumes directly to `.gradle` and `.npm` sub-folders, forcing high-speed Linux performance.
+* **Automated Versioning (Restored):** Automatic incrementing of `android-versionCode` and version strings in `config.xml`.
+* **Git Log Injection:** The build engine now automatically scrapes recent commit history and prepends it to this changelog during release.
+* **Verify-Environment v2.3.0:** Stricter diagnostic checks for WSL 2 status and PowerShell 5.1/7.0 compatibility.
+
+### 🛡️ Fixed
+* **EACCES Final Boss:** Resolved persistent permission denied errors by aligning the container `HOME` path with the project root and sanitizing `.config` permissions.
+* **Turbo Sync Mismatch:** Fixed the bug where the cache was bypassing Named Volumes and writing to the slow Windows host.
+* **WSL 1 Compatibility:** Added explicit warnings and blockages for WSL 1 to prevent volume-mounting failures.
+
+---
+
+## [2.2.0] - 2026-03-30
 
 ### Added
 - **Interactive Versioning:** New prompt in `Production-Release.bat` allows manual version overrides (e.g., forcing v2.2.0).
