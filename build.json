@@ -1,0 +1,12 @@
+{
+    "android": {
+        "release": {
+            "keystore": "alpha-release.keystore",
+            "storePassword": "Replace with your password",
+            "alias": "alpha-key",
+            "password": "Replace with your password",
+            "keystoreType": "jks",
+            "packageType": "bundle"
+        }
+    }
+}

@@ -1,33 +1,33 @@
+version: '3.8'
+
 services:
   builder:
-    # Point directly to your Hub image for v2.0
     image: remoorejr/alpha-cordova-android-build:latest
-    container_name: alpha_cordova_android_build
-    
-    # Keeps your host file permissions clean (UID 1000)
-    user: "1000:1000"
-    privileged: true
-    working_dir: /app
-
+    container_name: cordova-builder
+    user: cordovauser
+    working_dir: /home/cordovauser/app
     volumes:
-      - .:/app
+      # 1. Bind mount for your source code (Windows <-> Container)
+      - .:/home/cordovauser/app
+      
+      # 2. Anonymous volume to prevent Windows permission issues on the config folder
+      - /home/cordovauser/.config
+
+      # 3. Named volumes for high-performance caching (Stored inside Docker's Linux VM)
       - gradle_cache:/home/cordovauser/.gradle
       - npm_cache:/home/cordovauser/.npm
 
     environment:
-      - HOME=/home/cordovauser
-      - GRADLE_USER_HOME=/home/cordovauser/.gradle
-      - GRADLE_OPTS=-Dorg.gradle.native.dir=/tmp/.gradle-native -Dorg.gradle.warning.mode=none
-      - ADB_SERVER_SOCKET=tcp:host.docker.internal:5037
       # --- NEW FOR v2.0 (Required for Auto-Tagging) ---
-      - GIT_AUTHOR_NAME=Your Name
-      - GIT_AUTHOR_EMAIL=your@email.com
-      - GIT_COMMITTER_NAME=Your Name
-      - GIT_COMMITTER_EMAIL=your@email.com
     
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - GIT_USER_NAME=Your Name
+      - GIT_USER_EMAIL=your@email.com
+    
+    # Keeps the container interactive for ADB and terminal access
+    tty: true
+    stdin_open: true
 
+# volumes
 volumes:
   gradle_cache:
   npm_cache:

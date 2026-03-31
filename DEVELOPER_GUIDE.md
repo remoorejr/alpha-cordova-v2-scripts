@@ -1,85 +1,74 @@
+# 📘 Alpha Cordova Developer Guide (v2.2.0)
 
-# 🛠️ Developer Onboarding: Alpha Cordova Suite
-
-This project uses a **Dockerized Build Pipeline** to ensure that every developer builds the app using the exact same Android SDK, Gradle, and Node versions, regardless of their local machine setup.
-
-## 1. Local Environment Setup
-To interface with the Docker container and your physical hardware, your host machine needs these four tools:
-
-* **Docker Desktop:** Used to run the build container. Ensure it is running before starting any build script.
-* **Java JDK 17+ (Tooling & Communication):** While the actual app compilation happens inside Docker, a local JDK is required for the Windows host to run Android platform tools (like `adb`, `keytool`, and `jarsigner`) and to manage the handshake between your PC and the mobile device.
-* **Android SDK Platform-Tools (ADB):** Essential for deployment. You must be able to run `adb devices` in your terminal.
-* **Git:** Required for the automated versioning, changelog generation, and production tagging system.
+This guide provides a deep dive into the automation architecture of the Alpha Cordova Suite. Version 2.2.0 focuses on **Environment Stability** and **Build Performance**.
 
 ---
 
-### 🟦 PowerShell Requirements
-Our automation engine (`release-build.ps1`) requires specific configurations to run correctly on a developer's machine:
+## 🏗️ Architecture Overview
+The suite uses a **Containerized Build Pattern**. By wrapping the Android SDK, Gradle, and Cordova inside a Docker container, we eliminate "it works on my machine" issues caused by local environment drift.
 
-* **Version:** **PowerShell 5.1** (Standard on Windows 10/11) or **PowerShell 7+ (Core)**.
-* **Execution Policy:** By default, Windows blocks the execution of local scripts. Our `.bat` files use the `-ExecutionPolicy Bypass` flag to circumvent this for the specific build session, so developers **do not** need to change their global system security settings.
-* **Encoding:** If you edit the `.ps1` or `.bat` files, they **must** be saved saved using **UTF-8 encoding**. Using "UTF-16" or "ANSI" can cause the "Unexpected Token" errors.
-
----
-
-## 2. The "Three-File" Workflow
-We use three main entry points to manage the application lifecycle:
-
-### A. `Build-And-Install.bat` (The Daily Driver)
-Use this during active development.
-* **Option 1 (Full Reset):** Use this if you have modified `config.xml`, added a new Cordova plugin, or if the environment feels "glitchy." It wipes the platform and starts fresh.
-* **Option 2 (Turbo Sync):** Use this for **90% of your work**. If you only changed HTML, CSS, or JS in the `www/` folder, this will sync your changes to the device in seconds without a full re-compile.
-
-### B. `Production-Release.bat` (The Deployment Tool)
-Only use this when you are ready to ship a version to the Play Store. It handles version bumping, changelog updates, and Git tagging automatically.
-
-### C. `release-build.ps1` (The Engine)
-The "Brain" that the `.bat` files talk to. It handles the pre-flight logic, JDK verification, and device detection.
+### The "Brain": `release-build.ps1`
+The PowerShell engine handles the orchestration between your Windows host and the Linux container. It performs four critical tasks:
+1.  **Sanitization:** Preparing the host filesystem for Docker access.
+2.  **Versioning:** Parsing `config.xml` and updating Git tags.
+3.  **Orchestration:** Passing the correct environment variables and flags to `docker-compose`.
+4.  **Deployment:** Interfacing with the host-side `adb` to push signed artifacts to physical hardware.
 
 ---
 
-## 3. Targeting Android 15 (API 36)
-Our environment is specifically tuned for **API 36 (Baklava)**. 
-* **Compilation:** Handled entirely within the Docker container to avoid "Path" or "Environment Variable" conflicts on your local machine.
-* **Host-Side Java:** The build engine will warn you if your host is below JDK 17. This is a safety check to ensure your local Android tools are modern enough to communicate with an API 36 device.
+## 🛡️ The Permission Shield (`EACCES` Resolution)
+One of the primary challenges in WSL2/Docker development is the mismatch between Windows ACLs and Linux UIDs. v2.2.0 implements a "Permission Shield":
+
+* **HOME Redirection:** We force the container's `$HOME` to the project root (`/home/cordovauser/app`). This prevents the container from trying to write to protected or non-existent system folders in the WSL backend.
+* **`.config` Sanitization:** Many Node.js tools (like Cordova and Insight) try to write telemetry to `~/.config`. If this folder is owned by Windows "System," the build crashes. The script now force-clears and re-grants `Everyone:F` permissions to a local `.config` directory before every build.
 
 ---
 
-## 4. Best Practices
-1.  **Keep it Clean:** If the build fails unexpectedly, delete the `platforms/` folder and run a **Full Reset (Option 1)**.
-2.  **Commit Often:** The Production script generates changelogs based on your commit history. Better commit messages = better changelogs.
-3.  **Device Connection:** If the script says "No device found," toggle "USB Debugging" off and back on on your phone.
+## ⚡ High-Performance Caching
+To avoid the "Massive File Penalty" of syncing `node_modules` or `.gradle` folders across the WSL/Windows 9p bridge, we use **Named Volumes**.
+
+### Why it's faster:
+Standard "Bind Mounts" (mapping `C:\project` to `/app`) are slow for small files. **Named Volumes** (`gradle_cache` and `npm_cache`) live entirely within the Docker VM's native EXT4 filesystem.
+* **Compile Speed:** 5x - 10x faster than host-mounted caches.
+* **Stability:** Eliminates "File Lock" errors caused by Windows Indexer or Anti-Virus scanning the cache during a build.
 
 ---
 
-## 5. Troubleshooting
-* **ADB Socket Errors:** If you see `ADB server didn't ACK`, run `adb kill-server` and then try the build again. This resets the bridge between Windows and Docker.
-* **Version Mismatch:** If the Play Store rejects an upload, check that your `android-versionCode` in `config.xml` is higher than the last one you uploaded.
+## 🔐 Signing Configuration (`build.json`)
+Standardizing on `build.json` is required for the v2.2.0 engine. Unlike `.properties` files, JSON allows the Cordova CLI to accurately parse complex signing arguments for both Bundles and APKs.
 
----
-
-## 6. Manual Troubleshooting & PowerShell Direct Access
-
-If the `.bat` files fail with a generic error, you can run the PowerShell engine directly to see a more verbose debug output.
-
-### A. Bypassing Execution Policies
-If you receive a "scripts are disabled" error when running the `.ps1` file manually, use the following command in your terminal to run a build while bypassing local restrictions:
-
-```powershell
-powershell.exe -ExecutionPolicy Bypass -File ".\release-build.ps1" -Install
+**Example `build.json`:**
+```json
+{
+    "android": {
+        "release": {
+            "keystore": "alpha-release.keystore",
+            "storePassword": "your_password",
+            "alias": "your_alias",
+            "password": "your_password",
+            "keystoreType": "jks",
+            "packageType": "bundle"
+        }
+    }
+}
 ```
 
-### B. Common Manual Fixes
-* **Script "Stuck" on Device Discovery:** If the script hangs at `Checking for devices...`, run `adb kill-server` followed by `adb devices`. If your device shows as `unauthorized`, check your phone's screen to "Always allow" the connection from this computer.
-* **Docker Context Errors:** If you get an error like `docker-compose not found`, ensure you are running the command from the project root and that **Docker Desktop** is currently active.
-* **Empty $FINAL_OUT Error:**
-  If you encounter a `Test-Path` error, it usually means the Android build failed inside the container before the file could be created. Scroll up in your terminal to find the **Java/Gradle error** inside the Docker logs.
+---
 
-### C. Resetting the Environment
-If all else fails, perform a "Deep Clean":
-1. Close all terminals.
-2. Run `docker system prune` (Warning: this clears unused Docker data).
-3. Delete the `platforms/` and `plugins/` folders manually.
-4. Re-run `Build-And-Install.bat` (Option 1).
+## 📦 Hybrid Release Strategy
+Google Play requires **Android App Bundles (`.aab`)**, but physical devices require **APKs**. v2.2.0 solves this by performing a double-pass build when the `-Install` flag is used:
+
+1.  **Pass 1:** Generates the signed `.aab` for production upload.
+2.  **Pass 2:** Generates a signed `.apk` specifically for local testing.
+3.  **Deployment:** The script bypasses Cordova's internal `run` logic and uses the **host-side `adb`** to push the signed APK directly. This ensures the app on your phone is bit-for-bit identical to the one going to the store.
+
+---
+
+## 🔍 Troubleshooting
+| Issue | Cause | Solution |
+| :--- | :--- | :--- |
+| `INSTALL_PARSE_FAILED_NO_CERTIFICATES` | Unsigned APK selected. | Ensure `build.json` is present and passwords are correct. |
+| `EACCES: permission denied` | WSL/Windows UID mismatch. | Run `.\Verify-Environment.ps1` to check WSL version. |
+| Build artifact not found | File system sync latency. | The script now includes a 2-second "Sync Buffer" to allow Windows to see the new files. |
 
 ---

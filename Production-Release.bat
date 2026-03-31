@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 title Alpha Cordova Android: PRODUCTION RELEASE ENGINE
 
 echo ===================================================
@@ -12,36 +12,47 @@ echo     3. Generate a Signed Release Bundle (.aab)
 echo     4. Verify Device and Install (Optional)
 echo.
 
+:: --- Existing Step 1: Confirmation ---
 set /p confirm="Proceed with Production Release? (Y/N): "
 if /i "%confirm%" neq "Y" goto :cancel
 
+:: --- New Step 2: Manual Version Input ---
+echo.
+echo [?] To auto-increment (e.g. 2.1.0 -> 2.1.1), press ENTER.
+echo [?] To force a version (e.g. 2.2.0), type it below.
+set /p manual_version="Target Version: "
+
+:: --- Existing Step 3: Install Prompt ---
 echo.
 echo [?] Would you like to install to the device after the build?
 set /p install="Install to device? (Y/N): "
 
-:: Define the base command to avoid parsing issues
-set PS_CMD=powershell.exe -ExecutionPolicy Bypass -File ".\release-build.ps1" -Release
+:: --- Construction: Build the Command ---
+set ARGS=-Release
 
-if /i "%install%"=="Y" goto :run_install
-goto :run_only
+:: Add ResetVersion if provided
+if not "%manual_version%"=="" (
+    set ARGS=!ARGS! -ResetVersion "%manual_version%"
+)
 
-:run_install
-echo.
-echo 🚀 Initializing Signed Release + Install...
-%PS_CMD% -Install
-goto :end
+:: Add Install if requested
+if /i "%install%"=="Y" (
+    set ARGS=!ARGS! -Install
+    echo.
+    echo 🚀 Initializing Signed Release + Install...
+) else (
+    echo.
+    echo 📦 Initializing Signed Release Bundle only...
+)
 
-:run_only
-echo.
-echo 📦 Initializing Signed Release Bundle only...
-%PS_CMD%
+:: --- Execution ---
+powershell.exe -ExecutionPolicy Bypass -File ".\release-build.ps1" !ARGS!
 goto :end
 
 :cancel
 echo.
 echo ❌ Release aborted by user.
 echo.
-goto :end
 
 :end
 echo ===================================================
