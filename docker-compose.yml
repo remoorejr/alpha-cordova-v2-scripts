@@ -18,7 +18,6 @@ services:
       - npm_cache:/home/cordovauser/.npm
 
     environment:
-      # --- NEW FOR v2.0 (Required for Auto-Tagging) ---
     
       - GIT_USER_NAME=Your Name
       - GIT_USER_EMAIL=your@email.com

@@ -1,7 +1,10 @@
-# Force Linux line endings for files consumed by Docker/Linux
+# Force Linux line endings for Docker/Linux files
 *.yml       text eol=lf
 *.json      text eol=lf
 *.xml       text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.js        text eol=lf
 
 # Force Windows line endings for host-side scripts
 *.bat       text eol=crlf
