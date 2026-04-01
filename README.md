@@ -1,8 +1,7 @@
 # 🚀 Alpha Cordova Android Automation Suite v2.3.0
 
 A high-performance, Dockerized development pipeline for **Cordova** targeting **Android 15 (API 36 / Baklava)**. This suite provides instant UI syncing, hybrid release management, and cross-machine permission stability via the [alpha-cordova-android-build](https://hub.docker.com/r/remoorejr/alpha-cordova-android-build) Docker image.
-
-## 📂 Project Structure
+```text
 My-Cordova-App/
 ├── config.xml                 # REQUIRED (API 36 settings)
 ├── www/                       # REQUIRED (Your source code)
@@ -13,6 +12,7 @@ My-Cordova-App/
 ├── Production-Release.bat     # Deployment: AAB, APK, & Auto-Versioning
 ├── Verify-Environment.bat     # Quick Sanity Check
 └── DEVELOPER_GUIDE.md         # Detailed technical documentation
+```
 
 ## 💎 Key Features in v2.3.0
 * **Master Versioning:** Restored automatic `android-versionCode` bumping and `CHANGELOG.md` generation from Git logs.
