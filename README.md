@@ -27,14 +27,6 @@ My-Cordova-App/
 4.  **Turbo Sync:** After editing files in `www/`, run `Build-And-Install.bat` and select **Option 2** for a near-instant UI update on your device.
 5.  **Production:** Run [Production-Release.bat](https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/Production-Release.bat). Type a specific version (e.g., `2.3.0`) or hit Enter to auto-increment.
 
-## 🛠️ Quick Start
-
-1.  **Sanity Check:** Run [Verify-Environment.bat](https://www.google.com/search?q=https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/Verify-Environment.bat) to ensure your WSL 2, Docker, and JDK 17+ settings are optimized for API 36.
-2.  **Configure Signing:** Place your `.keystore` in the root and update [build.json](https://www.google.com/search?q=https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/build.json) with your credentials.
-3.  **Initial Build:** Run [Build-And-Install.bat](https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/Build-And-Install.bat) and select **Option 1**. This initializes the platform and performs a full Gradle build.
-4.  **Turbo Sync:** After editing files in `www/`, run `Build-And-Install.bat` and select **Option 2** for a near-instant UI update on your device.
-5.  **Production:** Run [Production-Release.bat](https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/Production-Release.bat). Type a specific version (e.g., `2.3.0`) or hit Enter to auto-increment.
-
 ## 📖 Documentation
 
 For a deep dive into the Permission Shield, Named Volume configuration, and troubleshooting, please refer to the [DEVELOPER\_GUIDE.md](https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/DEVELOPER_GUIDE.md).
