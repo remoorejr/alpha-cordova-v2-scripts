@@ -20,10 +20,20 @@ My-Cordova-App/
 * **Permission Shield:** Automated `EACCES` resolution via home-path redirection and `.config` sanitization.
 * **Hybrid Deployment:** Generates signed Store Bundles (`.aab`) and testing APKs (`.apk`) in a single pass.
 
+## 🛠️ Installation & Setup
+
+1. **Download:** Clone this repo or download the ZIP and place all files into your **Cordova Project Root**.
+2. **Configure Git:** Open `docker-compose.yml` and set your identity so the auto-tagging works:
+   ```yaml
+   environment:
+     - GIT_USER_NAME=Your Name
+     - GIT_USER_EMAIL=you@example.com
+   ```
+
 ## 🛠️ Quick Start
 1.  **Sanity Check:** Run `Verify-Environment.bat` to ensure your WSL 2, Docker, and JDK 17+ settings are optimized for API 36.
 2.  **Configure Signing:** Place your `.keystore` in the root and update build.json with your credentials.
-3.  **Initial Build:** Run `Build-And-Install.bat` and select `**Option 1**`. This initializes the platform and performs a full Gradle build.
+3.  **Initial Build:** Connect your Android device and run `Build-And-Install.bat` then select `**Option 1**`. This initializes the platform for Cordova Android 15.0.0 and performs a full Gradle build.
 4.  **Turbo Sync:** After editing files in `www/`, run `Build-And-Install.bat` and select **Option 2** for a near-instant UI update on your device.
 5.  **Production:** Run `Production-Release.bat`. Type a specific version (e.g., `2.3.0`) or hit Enter to auto-increment.
 
