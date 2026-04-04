@@ -31,10 +31,13 @@ $FINAL_OUT  = if ($Release) { $AAB_OUT } else { $DEBUG_OUT }
 
 # --- 2. PERMISSION SHIELD & CACHE ALIGNMENT ---
 Write-Host "Initializing Environment Shield v2.3.0..." -ForegroundColor Cyan
-$env:HOME = "/home/cordovauser/app"
-$env:GRADLE_USER_HOME = "/home/cordovauser/app/.gradle"
-$env:NPM_CONFIG_CACHE = "/home/cordovauser/app/.npm"
 
+# CHANGE THESE: Point to the home directory, NOT the /app subfolder
+$env:HOME = "/home/cordovauser"
+$env:GRADLE_USER_HOME = "/home/cordovauser/.gradle"
+$env:NPM_CONFIG_CACHE = "/home/cordovauser/.npm"
+
+# This ensures the 'docker compose run' command uses the correct paths
 $SUPPRESS_FLAGS = "-e HOME=$env:HOME -e GRADLE_USER_HOME=$env:GRADLE_USER_HOME -e NPM_CONFIG_CACHE=$env:NPM_CONFIG_CACHE -e CI=true -e INSIGHT_FORCE_NO_USAGE=true"
 
 $configPath = Join-Path $P_ROOT ".config"

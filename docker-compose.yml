@@ -6,16 +6,16 @@ services:
     working_dir: /home/cordovauser/app
     volumes:
       - .:/home/cordovauser/app
-      - /home/cordovauser/app/.config
-      - gradle_cache:/home/cordovauser/app/.gradle
-      - npm_cache:/home/cordovauser/app/.npm
+      - /home/cordovauser/.config
+      - gradle_cache:/home/cordovauser/.gradle
+      - npm_cache:/home/cordovauser/.npm
     environment:
       - GIT_USER_NAME=Your Name
       - GIT_USER_EMAIL=your@email.com
-      - GRADLE_USER_HOME=/home/cordovauser/app/.gradle
-      - NPM_CONFIG_CACHE=/home/cordovauser/app/.npm
-      # Ensures NPM doesn't try to use root for global installs
-      - npm_config_prefix=/home/cordovauser/app/.npm-global 
+      - GRADLE_USER_HOME=/home/cordovauser/.gradle
+      - NPM_CONFIG_CACHE=/home/cordovauser/.npm
+      - npm_config_prefix=/home/cordovauser/.npm-global
+     
     tty: true
     stdin_open: true
 
