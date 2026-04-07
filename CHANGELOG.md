@@ -1,3 +1,22 @@
+## [2.3.1] - 2026-04-06
+
+### ✨ Added
+* **Visual Build Status:** Integrated a full suite of emojis (🚀, ⚡, 💎, 🏗️) across all Batch and PowerShell scripts to provide immediate visual feedback on build states.
+* **Permission Shield v2.3.1:** Enhanced automated `EACCES` resolution and `.config` sanitization to ensure cross-machine stability.
+* **Docker Health Check:** Added a pre-flight Docker Engine verification to the loader to prevent "Service not found" errors.
+* **vscode/settings.json:** Ensures UTF-8 BOM file encoding when any edits are done. See Encoding Standard below.
+
+### 🛠️ Changed
+* **Encoding Standard:** Migrated all core scripts to **UTF-8 with BOM** to ensure PowerShell 5.1 correctly renders iconography without syntax "terminator" errors.
+* **Dynamic Build Menu:** The `Build-And-Install.bat` now intelligently locks the **Turbo Sync** option if the Android platform has not been initialized.
+* **Output Encoding:** Forced `[Console]::OutputEncoding` to UTF8 within the PowerShell engine to synchronize with the Windows `chcp 65001` code page.
+
+### 🧹 Fixed
+* **Ghosting Menu Items:** Resolved a Batch parser bug where multiple menu options would print simultaneously due to `IF/ELSE` block instability.
+* **Path Conflicts:** Fixed an issue where localized `.config` folders could interfere with Docker volume mounting.
+
+---
+
 ## [2.3.0] - 2026-03-31
 ### 🚀 Added
 * **Master Edition Consolidation:** Merged high-performance caching with advanced release automation into a single robust engine.

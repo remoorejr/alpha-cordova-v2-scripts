@@ -31,7 +31,6 @@ release-signing.properties
 # --- IDEs ---
 .DS_Store
 Thumbs.db
-.vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
