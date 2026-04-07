@@ -1,3 +1,20 @@
+## [2.3.3] - 2026-04-07
+
+### Added
+- **Smart Sync Engine**: Added MD5 file hashing in `release-build.ps1` to prevent redundant builds when no `/www` changes exist.
+- **Audio Cues**: Added `Play-ChangeDetected` (trill) and updated success/error beeps for eyes-free status updates.
+- **Performance Tracking**: New "Build Timer" displays elapsed seconds for both Full and Turbo builds.
+
+### Changed
+- **Turbo Sync Optimization**: Swapped `cordova compile` for direct `gradlew` execution, reducing build overhead by ~10 seconds.
+- **Docker Workflow**: Updated execution to use `--workdir /home/cordovauser/app/platforms/android` for better build stability.
+- **UX Improvements**: Changed `Build-And-Install.bat` to use a 5-second `timeout` instead of a manual `pause`.
+- **Refactoring**: Converted Batch-style `goto` labels in PowerShell to native `if/else` blocks to resolve `CommandNotFoundException`.
+
+### Fixed
+- Resolved "Directory does not contain a Gradle build" errors by anchoring Docker commands to the platform root.
+- Updated `.gitignore` to exclude `.last_sync_hash` state files.
+
 ## [2.3.2] - 2026-04-07
 
 ### Fixed

@@ -38,3 +38,6 @@ Thumbs.db
 # --- Automation Suite ---
 # Keep the scripts, but ignore local temporary logs
 release-build-log.txt
+
+# --- Sync State monitors changes in www directory ---
+.last_sync_hash

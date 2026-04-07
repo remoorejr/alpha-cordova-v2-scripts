@@ -19,6 +19,11 @@ param (
 function Play-Success { [console]::Beep(800, 200); [console]::Beep(1200, 400) }
 function Play-Error   { [console]::Beep(300, 600) }
 function Play-Prompt  { [System.Media.SystemSounds]::Asterisk.Play() }
+function Play-ChangeDetected { 
+    [console]::Beep(1000, 100)
+    [console]::Beep(1200, 100)
+    [console]::Beep(1400, 250) 
+}
 
 # --- 1. CONFIGURATION ---
 $DOCKER_SERVICE = "builder" 
@@ -105,9 +110,45 @@ if (-not (Test-Path $ANDROID_DIR)) {
 }
 
 # --- 5. BUILD ENGINE ---
+$BuildTimer = [System.Diagnostics.Stopwatch]::StartNew()
+$ShouldBuild = $false
+
 if ($Quick) {
-    Write-Host "⚡ >>> TURBO SYNC..." -ForegroundColor Magenta
-    Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova prepare android"
+    Write-Host "🔍 Checking for UI changes in /www..." -ForegroundColor Gray
+    
+    # Generate a unique fingerprint of all files in the www folder
+    $fileList = Get-ChildItem -Path "www" -Recurse | Where-Object { !$_.PSIsContainer }
+    $currentHash = ($fileList | ForEach-Object { Get-FileHash $_.FullName -Algorithm MD5 } | 
+                   Select-Object -ExpandProperty Hash | Out-String).Trim()
+    
+    $hashFile = Join-Path $P_ROOT ".last_sync_hash"
+    $storedHash = if (Test-Path $hashFile) { (Get-Content $hashFile).Trim() } else { "" }
+
+    if ($currentHash -eq $storedHash) {
+        Play-Prompt
+        Write-Host "🟦 No changes detected since the last Turbo Sync." -ForegroundColor Cyan
+        $choice = Read-Host "👉 Re-compile anyway? (Y/N)"
+        if ($choice -eq "Y") { $ShouldBuild = $true }
+    } else {
+        # Changes found! Update hash and trigger the audio trill
+        $currentHash | Set-Content $hashFile
+        Play-ChangeDetected
+        Write-Host "✨ Changes detected! Starting build..." -ForegroundColor Green
+        $ShouldBuild = $true
+    }
+    
+    if ($ShouldBuild) {
+        Write-Host "⚡ >>> TURBO SYNC..." -ForegroundColor Magenta
+        # Step A: Sync assets (fast)
+        Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova prepare android"
+        
+        # Step B: Direct Gradle compile (Saves ~10-15s vs 'cordova compile')
+        Write-Host "🔨 Assembling APK via Gradlew..." -ForegroundColor Gray
+        Invoke-Expression "docker compose run --rm --workdir /home/cordovauser/app/platforms/android $SUPPRESS_FLAGS $DOCKER_SERVICE ./gradlew assembleDebug"
+    } else {
+        Write-Host "⏭️  Skipping build. Proceeding directly to Deployment..." -ForegroundColor Yellow
+    }
+
 } elseif ($Release) {
     Write-Host "💎 >>> PRODUCTION RELEASE: v$newV" -ForegroundColor Yellow
     $signingArg = if (Test-Path $SIGNING_FILE) { "--buildConfig=$SIGNING_FILE" } else { "" }
@@ -119,11 +160,16 @@ if ($Quick) {
         Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova build android --release $signingArg -- --packageType=apk"
         if ($LASTEXITCODE -ne 0) { Play-Error; throw "APK build failed." }
     }
+    $ShouldBuild = $true
 } else {
     Write-Host "🛠️  >>> DEBUG BUILD" -ForegroundColor Cyan
     Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova build android --debug --nosearch"
     if ($LASTEXITCODE -ne 0) { Play-Error; throw "Debug build failed." }
+     $ShouldBuild = $true
 }
+
+$BuildTimer.Stop()
+$Elapsed = [Math]::Round($BuildTimer.Elapsed.TotalSeconds, 2)
 
 # --- 6. DEPLOYMENT ---
 if ($Install) {
@@ -132,7 +178,7 @@ if ($Install) {
     if ($null -ne $deviceLine) {
         $deviceID = $deviceLine.ToString().Split("`t")[0].Trim()
         $targetFile = if ($Release) { $APK_OUT } else { $DEBUG_OUT }
-        Start-Sleep -Seconds 1 
+        Start-Sleep -Seconds 2 
         if (Test-Path $targetFile) {
             Write-Host "📲 Installing to device [$deviceID]..." -ForegroundColor Magenta
             adb -s $deviceID install -r "$targetFile"
@@ -141,6 +187,12 @@ if ($Install) {
 }
 
 # --- 7. FINALIZING ---
+if ($ShouldBuild) {
+    Write-Host "`n🚀 BUILD SUCCESSFUL (Time: $Elapsed seconds)" -ForegroundColor Green
+} else {
+    Write-Host "`n✅ Ready for Deployment (Saved: $Elapsed seconds)" -ForegroundColor Green
+}
+
 if (-not $Quick) {
     Start-Sleep -Seconds 2 
     if (Test-Path $FINAL_OUT) {
