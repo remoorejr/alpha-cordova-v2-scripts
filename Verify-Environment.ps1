@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Alpha Cordova Environment Diagnostic v2.3.0
 #>
