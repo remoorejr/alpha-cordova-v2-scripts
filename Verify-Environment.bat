@@ -1,4 +1,7 @@
-﻿@echo off
+@echo off
+@cls
+@echo off
+chcp 65001 > nul
 echo ========================================================
 echo   Launching Environment Sanity Check...
 echo ========================================================

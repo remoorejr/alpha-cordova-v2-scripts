@@ -1,4 +1,6 @@
-﻿@echo off
+@echo off
+@cls
+@echo off
 chcp 65001 > nul
 setlocal EnableDelayedExpansion
 title Alpha Cordova Android: PRODUCTION RELEASE ENGINE

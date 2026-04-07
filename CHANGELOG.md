@@ -1,3 +1,12 @@
+## [2.3.2] - 2026-04-07
+
+### Fixed
+- **Terminal Encoding:** Implemented a "BOM-shield" header in all `.bat` files to prevent command echoing caused by UTF-8 Byte Order Mark (BOM) collisions in Windows CMD.
+- **Emoji Rendering:** Added explicit `chcp 65001` switching to ensure UI icons (📱, 🔄, 🚀) render correctly across different Windows terminal configurations.
+
+### Changed
+- **Script Initialization:** Updated `Build-And-Install.bat`, `Verify-Environment.bat`, and `Production-Release.bat` with a standardized 4-line silent boot sequence for improved console professionality.
+
 ## [2.3.1] - 2026-04-06
 
 ### ✨ Added
