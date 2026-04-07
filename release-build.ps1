@@ -12,6 +12,9 @@ param (
     [Switch]$SkipConfirm     
 )
 
+# Force UTF8 Encoding for Emoji Support
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 # --- HELPER: AUDIO ENGINE ---
 function Play-Success { [console]::Beep(800, 200); [console]::Beep(1200, 400) }
 function Play-Error   { [console]::Beep(300, 600) }
@@ -30,7 +33,7 @@ $DEBUG_OUT  = Join-Path $P_ROOT "platforms/android/app/build/outputs/apk/debug/a
 $FINAL_OUT  = if ($Release) { $AAB_OUT } else { $DEBUG_OUT }
 
 # --- 2. PERMISSION SHIELD & CACHE ALIGNMENT ---
-Write-Host "Initializing Environment Shield v2.3.0..." -ForegroundColor Cyan
+Write-Host "🛡️  Initializing Environment Shield v2.3.0..." -ForegroundColor Cyan
 
 # CHANGE THESE: Point to the home directory, NOT the /app subfolder
 $env:HOME = "/home/cordovauser"
@@ -65,9 +68,9 @@ if ($Release -and -not $Quick -and $isGitRepo) {
 
         if (-not $SkipConfirm) {
             Play-Prompt
-            Write-Host "`nTarget Version: v$newV" -ForegroundColor Yellow
-            $confirmation = Read-Host "Proceed? (Y/N)"
-            if ($confirmation -ne "Y") { Write-Host "Aborted."; exit 0 }
+            Write-Host "`n🏷️  Target Version: v$newV" -ForegroundColor Yellow
+            $confirmation = Read-Host "👉 Proceed? (Y/N)"
+            if ($confirmation -ne "Y") { Write-Host "🛑 Aborted."; exit 0 }
         }
 
         $vCode = [int]$root.'android-versionCode' + 1
@@ -77,7 +80,7 @@ if ($Release -and -not $Quick -and $isGitRepo) {
         
         $lastTag = git describe --tags --abbrev=0 2>$null
         $logs = if ($null -eq $lastTag) { git log --pretty=format:"* %s (%h)" -n 10 } else { git log "$($lastTag)..HEAD" --pretty=format:"* %s (%h)" }
-        $header = "## [$newV] - $(Get-Date -Format 'yyyy-MM-dd')`n$logs`n"
+        $header = "## [$newV] - $(Get-Date -Format 'yyyy-md-dd')`n$logs`n"
         if (Test-Path $CHANGELOG_FILE) {
             $oldContent = Get-Content $CHANGELOG_FILE -Raw
             Set-Content $CHANGELOG_FILE -Value ($header + "`n" + $oldContent)
@@ -97,16 +100,16 @@ if (-not $Quick) {
 }
 
 if (-not (Test-Path $ANDROID_DIR)) {
-    Write-Host "Initializing Android Platform..." -ForegroundColor Yellow
+    Write-Host "🏗️  Initializing Android Platform..." -ForegroundColor Yellow
     Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova platform add android --nosave"
 }
 
 # --- 5. BUILD ENGINE ---
 if ($Quick) {
-    Write-Host ">>> TURBO SYNC..." -ForegroundColor Magenta
+    Write-Host "⚡ >>> TURBO SYNC..." -ForegroundColor Magenta
     Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova prepare android"
 } elseif ($Release) {
-    Write-Host ">>> PRODUCTION RELEASE: v$newV" -ForegroundColor Yellow
+    Write-Host "💎 >>> PRODUCTION RELEASE: v$newV" -ForegroundColor Yellow
     $signingArg = if (Test-Path $SIGNING_FILE) { "--buildConfig=$SIGNING_FILE" } else { "" }
 
     Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova build android --release $signingArg -- --packageType=bundle"
@@ -117,7 +120,7 @@ if ($Quick) {
         if ($LASTEXITCODE -ne 0) { Play-Error; throw "APK build failed." }
     }
 } else {
-    Write-Host ">>> DEBUG BUILD" -ForegroundColor Cyan
+    Write-Host "🛠️  >>> DEBUG BUILD" -ForegroundColor Cyan
     Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova build android --debug --nosearch"
     if ($LASTEXITCODE -ne 0) { Play-Error; throw "Debug build failed." }
 }
@@ -131,7 +134,7 @@ if ($Install) {
         $targetFile = if ($Release) { $APK_OUT } else { $DEBUG_OUT }
         Start-Sleep -Seconds 1 
         if (Test-Path $targetFile) {
-            Write-Host "Installing to device [$deviceID]..." -ForegroundColor Magenta
+            Write-Host "📲 Installing to device [$deviceID]..." -ForegroundColor Magenta
             adb -s $deviceID install -r "$targetFile"
         }
     }
@@ -148,9 +151,9 @@ if (-not $Quick) {
         }
     } else {
         Play-Error
-        Write-Error "Artifact verification failed at $FINAL_OUT"
+        Write-Error "❌ Artifact verification failed at $FINAL_OUT"
     }
 } else {
     Play-Success
-    Write-Host "Turbo Sync Complete." -ForegroundColor Green
+    Write-Host "✅ Turbo Sync Complete." -ForegroundColor Green
 }

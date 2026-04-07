@@ -35,7 +35,16 @@ My-Cordova-App/
 2.  **Configure Signing:** Place your `.keystore` in the root and update build.json with your credentials.
 3.  **Initial Build:** Connect your Android device and run `Build-And-Install.bat` then select `**Option 1**`. This initializes the platform for Cordova Android 15.0.0 and performs a full Gradle build.
 4.  **Turbo Sync:** After editing files in `www/`, run `Build-And-Install.bat` and select **Option 2** for a near-instant UI update on your device.
+
+      | Feature | [1] 🔄 Full Reset | [2] 🚀 Turbo Sync |
+      | :--- | :--- | :--- |
+      | **When to use** | First-time setup or if build fails | Daily UI/JS/CSS coding |
+      | **Speed** | 2–5 Minutes | **\< 10 Seconds** |
+      | **Cleans Platforms?** | Yes (Total Wipe) | No (Sync Only) |
+      | **Installs to Device?** | Yes | Yes |
+
 5.  **Production:** Run `Production-Release.bat`. Type a specific version (e.g., `2.3.0`) or hit Enter to auto-increment.
+
 
 ## 📖 Documentation
 
