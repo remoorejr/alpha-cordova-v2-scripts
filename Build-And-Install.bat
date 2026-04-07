@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal enabledelayedexpansion
 :: Set code page to UTF-8 for emoji support
 chcp 65001 > nul

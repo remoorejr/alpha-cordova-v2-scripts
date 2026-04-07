@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Alpha Cordova Android Build Engine v2.3.0
     Features: Permission Shield, Turbo Caching, and Audio Notification Logic.
