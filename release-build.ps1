@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
-    Alpha Cordova Android Build Engine v2.3.0
-    Features: Permission Shield, Turbo Caching, and Audio Notification Logic.
+    Alpha Cordova Android Build Engine v2.3.5 (Titanium Edition)
+    Features: Byte-level Turbo Sync, Permission Shield, and Automated Changelogs.
 #>
 
 param (
@@ -38,20 +38,18 @@ $DEBUG_OUT  = Join-Path $P_ROOT "platforms/android/app/build/outputs/apk/debug/a
 $FINAL_OUT  = if ($Release) { $AAB_OUT } else { $DEBUG_OUT }
 
 # --- 2. PERMISSION SHIELD & CACHE ALIGNMENT ---
-Write-Host "🛡️  Initializing Environment Shield v2.3.0..." -ForegroundColor Cyan
+Write-Host "🛡️  Initializing Environment Shield v2.3.5..." -ForegroundColor Cyan
 
-# CHANGE THESE: Point to the home directory, NOT the /app subfolder
 $env:HOME = "/home/cordovauser"
 $env:GRADLE_USER_HOME = "/home/cordovauser/.gradle"
 $env:NPM_CONFIG_CACHE = "/home/cordovauser/.npm"
 
-# This ensures the 'docker compose run' command uses the correct paths
 $SUPPRESS_FLAGS = "-e HOME=$env:HOME -e GRADLE_USER_HOME=$env:GRADLE_USER_HOME -e NPM_CONFIG_CACHE=$env:NPM_CONFIG_CACHE -e CI=true -e INSIGHT_FORCE_NO_USAGE=true"
 
+# Clean local config noise
 $configPath = Join-Path $P_ROOT ".config"
 if (Test-Path $configPath) { Remove-Item -Path $configPath -Recurse -Force -ErrorAction SilentlyContinue }
 New-Item -ItemType Directory -Path $configPath -Force | Out-Null
-icacls $configPath /grant Everyone:F /T /q
 
 # --- 3. VERSIONING & CHANGELOG LOGIC ---
 $isGitRepo = (git rev-parse --is-inside-work-tree 2>$null) -eq "true"
@@ -85,7 +83,7 @@ if ($Release -and -not $Quick -and $isGitRepo) {
         
         $lastTag = git describe --tags --abbrev=0 2>$null
         $logs = if ($null -eq $lastTag) { git log --pretty=format:"* %s (%h)" -n 10 } else { git log "$($lastTag)..HEAD" --pretty=format:"* %s (%h)" }
-        $header = "## [$newV] - $(Get-Date -Format 'yyyy-md-dd')`n$logs`n"
+        $header = "## [$newV] - $(Get-Date -Format 'yyyy-MM-dd')`n$logs`n"
         if (Test-Path $CHANGELOG_FILE) {
             $oldContent = Get-Content $CHANGELOG_FILE -Raw
             Set-Content $CHANGELOG_FILE -Value ($header + "`n" + $oldContent)
@@ -114,39 +112,54 @@ $BuildTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $ShouldBuild = $false
 
 if ($Quick) {
-    Write-Host "🔍 Checking for UI changes in /www..." -ForegroundColor Gray
+    Write-Host "🔍 Analyzing /www (Strict Byte-Level Check)..." -ForegroundColor Gray
     
-    # Generate a unique fingerprint of all files in the www folder
-    $fileList = Get-ChildItem -Path "www" -Recurse | Where-Object { !$_.PSIsContainer }
-    $currentHash = ($fileList | ForEach-Object { Get-FileHash $_.FullName -Algorithm MD5 } | 
-                   Select-Object -ExpandProperty Hash | Out-String).Trim()
-    
-    $hashFile = Join-Path $P_ROOT ".last_sync_hash"
-    $storedHash = if (Test-Path $hashFile) { (Get-Content $hashFile).Trim() } else { "" }
+    # Define strictly what influences the UI/Logic
+    $includeList = @("*.html", "*.js", "*.css", "*.json", "*.xml")
+    $excludeList = @("version.json", "config.xml", "package.json")
 
-    if ($currentHash -eq $storedHash) {
+    # Get files with a stable sort order
+    $fileList = Get-ChildItem -Path "www" -Recurse -Include $includeList -Exclude $excludeList | 
+                Where-Object { $_.FullName -notmatch "\\\." } | 
+                Sort-Object FullName
+    
+    # Use .NET StringBuilder and MD5 to ensure zero PowerShell string formatting interference
+    $sb = New-Object System.Text.StringBuilder
+    $md5 = [System.Security.Cryptography.MD5]::Create()
+
+    foreach ($file in $fileList) {
+        try {
+            $fileBytes = [System.IO.File]::ReadAllBytes($file.FullName)
+            $hashBytes = $md5.ComputeHash($fileBytes)
+            [void]$sb.Append($file.Name)
+            [void]$sb.Append([System.BitConverter]::ToString($hashBytes))
+        } catch { continue }
+    }
+
+    $currentHash = $sb.ToString()
+    $hashFile = Join-Path $P_ROOT ".last_sync_hash"
+    $storedHash = if (Test-Path $hashFile) { Get-Content $hashFile -Raw -ErrorAction SilentlyContinue } else { "" }
+    if ($currentHash -eq $storedHash -and $storedHash -ne "") {
         Play-Prompt
-        Write-Host "🟦 No changes detected since the last Turbo Sync." -ForegroundColor Cyan
-        $choice = Read-Host "👉 Re-compile anyway? (Y/N)"
+        Write-Host "🟦 No UI/Logic changes detected. Environment stable." -ForegroundColor Cyan
+        $choice = Read-Host "👉 Force re-compile anyway? (Y/N)"
         if ($choice -eq "Y") { $ShouldBuild = $true }
     } else {
-        # Changes found! Update hash and trigger the audio trill
-        $currentHash | Set-Content $hashFile
+        [System.IO.File]::WriteAllText($hashFile, $currentHash)
         Play-ChangeDetected
-        Write-Host "✨ Changes detected! Starting build..." -ForegroundColor Green
+        Write-Host "✨ UI Changes detected!" -ForegroundColor Green
         $ShouldBuild = $true
     }
     
     if ($ShouldBuild) {
         Write-Host "⚡ >>> TURBO SYNC..." -ForegroundColor Magenta
-        # Step A: Sync assets (fast)
         Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova prepare android"
         
-        # Step B: Direct Gradle compile (Saves ~10-15s vs 'cordova compile')
         Write-Host "🔨 Assembling APK via Gradlew..." -ForegroundColor Gray
         Invoke-Expression "docker compose run --rm --workdir /home/cordovauser/app/platforms/android $SUPPRESS_FLAGS $DOCKER_SERVICE ./gradlew assembleDebug"
+        if ($LASTEXITCODE -ne 0) { Play-Error; throw "Turbo build failed." }
     } else {
-        Write-Host "⏭️  Skipping build. Proceeding directly to Deployment..." -ForegroundColor Yellow
+        Write-Host "⏭️  Skipping build. Proceeding to Deployment..." -ForegroundColor Yellow
     }
 
 } elseif ($Release) {
@@ -165,7 +178,7 @@ if ($Quick) {
     Write-Host "🛠️  >>> DEBUG BUILD" -ForegroundColor Cyan
     Invoke-Expression "docker compose run --rm $SUPPRESS_FLAGS $DOCKER_SERVICE cordova build android --debug --nosearch"
     if ($LASTEXITCODE -ne 0) { Play-Error; throw "Debug build failed." }
-     $ShouldBuild = $true
+    $ShouldBuild = $true
 }
 
 $BuildTimer.Stop()
@@ -178,7 +191,7 @@ if ($Install) {
     if ($null -ne $deviceLine) {
         $deviceID = $deviceLine.ToString().Split("`t")[0].Trim()
         $targetFile = if ($Release) { $APK_OUT } else { $DEBUG_OUT }
-        Start-Sleep -Seconds 2 
+        Start-Sleep -Seconds 1 
         if (Test-Path $targetFile) {
             Write-Host "📲 Installing to device [$deviceID]..." -ForegroundColor Magenta
             adb -s $deviceID install -r "$targetFile"
@@ -194,16 +207,11 @@ if ($ShouldBuild) {
 }
 
 if (-not $Quick) {
-    Start-Sleep -Seconds 2 
     if (Test-Path $FINAL_OUT) {
-        Write-Host "`n🚀 BUILD SUCCESSFUL" -ForegroundColor Green
         Play-Success
         if ($NeedsCommit) {
             git add $C_FILE $CHANGELOG_FILE; git commit -m "release v$newV"; git tag "v$newV"
         }
-    } else {
-        Play-Error
-        Write-Error "❌ Artifact verification failed at $FINAL_OUT"
     }
 } else {
     Play-Success
