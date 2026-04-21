@@ -2,23 +2,28 @@ services:
   builder:
     image: remoorejr/alpha-cordova-android-build:latest
     container_name: cordova-builder
-    user: cordovauser
     working_dir: /home/cordovauser/app
     volumes:
       - .:/home/cordovauser/app
+      - ./android_cache:/home/cordovauser/.android
+      - ./android_cache:/root/.android               # Bridge: Ensures root builds save to the same cache
+      - platforms_cache:/home/cordovauser/app/platforms
+      - modules_cache:/home/cordovauser/app/node_modules
+      - plugins_cache:/home/cordovauser/app/plugins
       - /home/cordovauser/.config
       - gradle_cache:/home/cordovauser/.gradle
       - npm_cache:/home/cordovauser/.npm
     environment:
-      - GIT_USER_NAME=Your Name
-      - GIT_USER_EMAIL=your@email.com
-      - GRADLE_USER_HOME=/home/cordovauser/.gradle
-      - NPM_CONFIG_CACHE=/home/cordovauser/.npm
-      - npm_config_prefix=/home/cordovauser/.npm-global
-     
+      - CI=true
+      - GRADLE_USER_HOME=/home/cordovauser/.android  # Forces Gradle to find the keystore in our volume
+      - ANDROID_USER_HOME=/home/cordovauser/.android # Forces Android tools to use the persistent path
+    user: root 
     tty: true
     stdin_open: true
 
 volumes:
+  platforms_cache:
+  modules_cache:
+  plugins_cache:
   gradle_cache:
   npm_cache:
