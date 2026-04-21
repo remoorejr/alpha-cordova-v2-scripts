@@ -1,63 +1,48 @@
 @echo off
 @cls
-@echo off
 chcp 65001 > nul
-setlocal EnableDelayedExpansion
-title Alpha Cordova Android: PRODUCTION RELEASE ENGINE
+setlocal enabledelayedexpansion
+title Alpha Cordova Android: PRODUCTION RELEASE
 
+:menu
+cls
+set "P_TYPE="
+set "P_INST="
 echo ===================================================
-echo 💎  CORDOVA: Production Release (API 36)
+echo 📱 CORDOVA: Signed Production Release Tool
 echo ===================================================
-echo [!] This will:
-echo     1. Perform a Full Platform Reset
-echo     2. Bump Version ^& Update Changelog (via Git)
-echo     3. Generate a Signed Release Bundle (.aab)
-echo     4. Verify Device and Install (Optional)
+echo.
+echo  [1] 📦 Build Signed APK (Testing/Sideload)
+echo  [2] 📲 Build + Install Signed APK to Device
+echo  [3] 🚀 Build Signed AAB Bundle (Google Play)
+echo  [4] ❌ Cancel
 echo.
 
-:: --- Existing Step 1: Confirmation ---
-set /p confirm="Proceed with Production Release? (Y/N): "
-if /i "%confirm%" neq "Y" goto :cancel
+set /p choice="👉 Select option (1-4): "
 
-:: --- New Step 2: Manual Version Input ---
+if "%choice%"=="1" (set "P_TYPE=apk" & set "P_INST=" & goto :run)
+if "%choice%"=="2" (set "P_TYPE=apk" & set "P_INST=-Install" & goto :run)
+if "%choice%"=="3" (set "P_TYPE=aab" & set "P_INST=" & goto :run)
+if "%choice%"=="4" goto :quit
+
+:: Error Handling for Invalid Input
 echo.
-echo [?] To auto-increment (e.g. 2.3.0 -> 2.3.1), press ENTER.
-echo [?] To force a version (e.g. 2.3.0), type it below.
-set /p manual_version="Target Version: "
+echo ❌ "%choice%" is not a valid selection. Please choose 1-4.
+timeout /t 2 > nul
+goto :menu
 
-:: --- Existing Step 3: Install Prompt ---
+:run
 echo.
-echo [?] Would you like to install to the device after the build?
-set /p install="Install to device? (Y/N): "
-
-:: --- Construction: Build the Command ---
-set ARGS=-Release
-
-:: Add ResetVersion if provided
-if not "%manual_version%"=="" (
-    set ARGS=!ARGS! -ResetVersion "%manual_version%"
-)
-
-:: Add Install if requested
-if /i "%install%"=="Y" (
-    set ARGS=!ARGS! -Install
-    echo.
-    echo 🚀 Initializing Signed Release + Install...
-) else (
-    echo.
-    echo 📦 Initializing Signed Release Bundle only...
-)
-
-:: --- Execution ---
-powershell.exe -ExecutionPolicy Bypass -File ".\release-build.ps1" !ARGS!
+echo 🚀 Initializing Production %P_TYPE% Release...
+powershell.exe -ExecutionPolicy Bypass -File ".\production-build.ps1" -Release %P_INST% -PackageType %P_TYPE%
 goto :end
 
-:cancel
-echo.
-echo ❌ Release aborted by user.
-echo.
+:quit
+echo 🛑 Release aborted.
+goto :eof
 
 :end
-echo ===================================================
+echo.
 echo ✅ Process Complete.
 pause
+goto :menu
