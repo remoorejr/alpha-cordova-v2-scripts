@@ -1,3 +1,40 @@
+# Changelog
+
+All notable changes to the **Alpha Cordova Android Build Engine** will be documented in this file.
+
+## [2.6.1] - 2026-04-21
+### Added
+- **Production Track:** New `Production-Release.bat` and `production-build.ps1` workflow.
+- **App Bundle Support:** Added ability to generate signed `.aab` files for Google Play Store submission via `--packageType=bundle`.
+- **Signed APKs:** Support for signed release `.apk` files for manual sideloading and testing.
+- **Auto-Versioning:** Automatic patch-level version incrementing in `config.xml` during production runs.
+
+## [2.5.8] - 2026-04-20
+### Fixed
+- **CLI Flow:** Replaced `exit` calls with `return` and `goto :eof` to ensure the terminal returns to the command prompt instead of closing the window.
+- **Menu Synchronization:** Resolved "Double Menu" display issues by implementing a `-BatchMode` switch for PowerShell.
+
+## [2.5.7] - 2026-04-19
+### Added
+- **Persistent Signing Shield:** Implemented `android_cache` volume mapping in `docker-compose.yml` to preserve `debug.keystore`.
+- **Signing Mismatch Recovery:** Added logic to detect signature discrepancies on-device and perform an automated `uninstall/install` cycle.
+
+## [2.5.6] - 2026-04-18
+### Changed
+- **Hammer Reset:** Enhanced `Reset-Environment` with an aggressive 15-second retry loop to overcome Windows "Delete-Pending" filesystem locks.
+- **Windows Indexer Breather:** Added a mandatory 2-second cooldown after volume wipes to allow the host OS to stabilize.
+
+## [2.5.0] - 2026-04-16
+### Added
+- **Turbo Sync Intelligence:** Introduced byte-level MD5 hashing for the `/www` directory to skip redundant Gradle compilations when no source changes are detected.
+### Changed
+- **Volume Architecture:** Optimized `docker-compose.yml` with named volumes for `platforms`, `node_modules`, and `plugins` to bypass WSL2/Windows file sync latency.
+
+## [2.4.8] - 2026-04-14
+### Added
+- **API 36 Support:** Stabilized Docker image and environment variables for Android 15 (API 36).
+- **Direct-Stream Bridging:** Implemented `docker cp` via a temporary detached container to reliably move APKs from Linux volumes to the Windows host.
+
 ## [2.3.3] - 2026-04-07
 
 ### Added
@@ -82,6 +119,16 @@
 ### 🛠️ Fixed
 * **Shell Script Execution:** Resolved an issue where scripts cloned on Windows would fail to execute inside the Docker container due to incorrect line-ending formats.
 * **Path Mapping:** Improved volume mounting logic in `docker-compose.yml` to better handle absolute paths in different terminal environments.
+
+## [2.0.0] - [Legacy]
+### Added
+- Initial Dockerized build implementation.
+- Basic Batch file entry point for Cordova commands.
+- Support for Alpha Cordova V2 script architecture.
+
+---
+
+> **Note:** Versions prior to 2.4.8 refer to the legacy development branch. Versions 2.5.0 and above represent the high-performance refactor for API 36 stability.
 
 ### 📝 Documentation
 * Updated the main [README.md](https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/README.md) to reflect the new versioning and added a "Quick Start" checklist for new users.
