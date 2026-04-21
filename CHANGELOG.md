@@ -2,6 +2,32 @@
 
 All notable changes to the **Alpha Cordova Android Build Engine** will be documented in this file.
 
+## [2.7.9] - 2026-04-21
+
+### Added
+* **Audio Feedback System:** Integrated distinct beep frequencies for system states: `Chirp` (Change detected), `Wait` (Handing off to Gradle), `Success` (Build complete), and `Error` (Process failed).
+* **Startup Heartbeat:** Added explicit "Starting Gradle Daemon" notifications with "Hang tight" warnings to manage expectations during high-I/O initialization phases on slower Windows hosts.
+* **Artifact Publishing:** Automated mirroring of build artifacts (`.apk` and `.aab`) from deep internal Android paths to project-root `\debug` and `\release` folders for immediate access.
+* **Input Validation:** Robust menu handling in `.bat` files that detects invalid selections and provides a timed error message before refreshing the menu.
+* **Production Signing Shield:** Automatic detection of Debug/Release signature mismatches on connected devices; performs a clean uninstall of existing versions to ensure the new signature lands successfully.
+
+### Fixed
+* **PowerShell Parser Errors:** Refactored all string handling to eliminate "Unexpected Token" errors caused by nested quotes and colons in JSON/XML strings.
+* **Encoding Conflicts:** Migrated from `Out-File` to `.NET WriteAllText` methods to force **UTF-8 (No-BOM)** encoding, preventing hidden Byte Order Mark characters from breaking the Linux-based Docker parser.
+* **Color Visibility:** Swapped `DarkGray` and `Gray` foreground colors for **Yellow** and **Cyan** to ensure full readability across various terminal themes (Light/Dark).
+* **Package Ambiguity:** Explicitly injected `--packageType` flags into the Cordova build command to prevent Gradle from defaulting to AAB when an APK was requested.
+
+### Changed
+* **Turbo Sync Optimization:** Enhanced MD5-based "Turbo Sync" to skip the heavy compilation phase entirely if no changes are detected, while still allowing the user to proceed with deployment/installation.
+* **Unified UI:** Synchronized the look, feel, and logic across both `build-and-install.bat` and `Production-Release.bat` for a cohesive developer experience.
+* **Gradle Injection:** Moved `GRADLE_OPTS` into environment variables via `docker compose run -e`, bypassing CLI parsing issues and improving memory allocation ($2048$MB heap).
+
+---
+
+### [2.6.5] - Initial Script Refactor
+* Initial migration of build logic into managed PowerShell scripts.
+* Introduction of Docker-bridged `keytool` for keystore generation.
+
 ## [2.6.1] - 2026-04-21
 ### Added
 - **Production Track:** New `Production-Release.bat` and `production-build.ps1` workflow.
