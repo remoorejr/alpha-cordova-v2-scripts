@@ -2,7 +2,7 @@
 
 All notable changes to the **Alpha Cordova Android Build Engine** will be documented in this file.
 
-## [2.7.10] - 2026-04-22
+## [2.8.0] - 2026-04-22
 
 ### Added
 - **Smart Asset Detection:** Added timestamp comparison engine to Turbo Sync. UI asset syncing is now intelligently skipped if no files in the `www/` directory have been modified.
