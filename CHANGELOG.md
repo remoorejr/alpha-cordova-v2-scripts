@@ -2,6 +2,21 @@
 
 All notable changes to the **Alpha Cordova Android Build Engine** will be documented in this file.
 
+## [2.7.10] - 2026-04-22
+
+### Added
+- **Smart Asset Detection:** Added timestamp comparison engine to Turbo Sync. UI asset syncing is now intelligently skipped if no files in the `www/` directory have been modified.
+
+- **Artifact Export:** The build engine now dynamically locates the most recently generated APK and automatically exports a copy to a `debug/` folder in the project root for easy access.
+
+### Changed
+- **Ultra-Fast Turbo Sync:** Bypassed the standard `cordova build` wrapper for Option 2. The script now executes `./gradlew assembleDebug` directly with highly optimized flags (`--parallel`, `--build-cache`, `--daemon`, `--configure-on-demand`), reducing sync times to ~2 seconds.
+- **Deployment Engine:** Switched from `cordova run` to direct Android Debug Bridge (`adb install -r -d -t`) for pushing the app to the device.
+
+### Fixed
+- **Signature Mismatch Errors:** Fixed the `INSTALL_FAILED_UPDATE_INCOMPATIBLE` error during rapid development by utilizing ADB's force-overwrite and test-package flags.
+- **Parameter Parsing Stability:** Implemented an airtight detection block to reliably catch the hidden `-Quick` flag and raw string arguments from the batch wrapper.
+
 ## [2.7.9] - 2026-04-21
 
 ### Added
