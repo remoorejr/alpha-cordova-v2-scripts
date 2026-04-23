@@ -6,6 +6,27 @@ title Alpha Cordova Android: Debug Build Tool (API 36)
 
 :menu
 cls
+:: ============================================================================
+:: ALPHA CORDOVA SUITE - VERSION CHECK
+:: ============================================================================
+set "CURRENT_VERSION=2.8.0"
+set "VERSION_URL=https://raw.githubusercontent.com/remoorejr/alpha-cordova-v2-scripts/main/CHANGELOG.md"
+
+echo 🔄 [INFO] Checking for build suite updates...
+
+:: Added -TimeoutSec 3 to ensure this fails fast if the user is offline, preventing hanging
+powershell -Command "$remote = (Invoke-WebRequest -Uri '%VERSION_URL%' -UseBasicParsing -TimeoutSec 3).Content; $latest = [regex]::Match($remote, '(\d+\.\d+\.\d+)').Value; if ($latest -and $latest -ne '%CURRENT_VERSION%') { exit 1 } else { exit 0 }" >nul 2>&1
+
+if %errorlevel% neq 0 (
+    echo.
+    echo 📢 [NOTICE] A newer version of the Alpha Cordova Suite is available!
+    echo 💡 [TIP] Run your installation script to pull the latest features and fixes.
+    echo.
+    :: Pause briefly so they actually see the message, but don't force a hard stop
+    timeout /t 4 >nul
+)
+:: ============================================================================
+
 echo ===================================================
 echo 📱 CORDOVA Android: Debug Build Tool (API 36)
 echo ===================================================
