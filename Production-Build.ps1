@@ -88,6 +88,9 @@ try {
 
     Write-Host ">> Step 4/5: Compiling Signed Release $PackageType..." -ForegroundColor Cyan
     $pkgFlag = if ($PackageType -eq "aab") { "-- --packageType=bundle" } else { "-- --packageType=apk" }
+
+    Write-Host "`n☕ Grab a coffee! Production builds are highly optimized and fully signed." -ForegroundColor Yellow
+    Write-Host "   Please sit tight, as the Windows/WSL Gradle compile can take 2 to 5 minutes..." -ForegroundColor Cyan
     
     # Execute Build
     $buildCmd = "cordova prepare android && cordova build android --release --buildConfig=build.json $pkgFlag"

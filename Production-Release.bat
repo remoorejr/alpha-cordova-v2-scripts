@@ -38,11 +38,11 @@ powershell.exe -ExecutionPolicy Bypass -File ".\production-build.ps1" -Release %
 goto :end
 
 :quit
-echo 🛑 Release aborted.
+echo 🛑 Release Process Terminated.
 goto :eof
 
 :end
 echo.
-echo ✅ Process Complete.
+echo ✅ Release Process Complete.
 pause
 goto :menu
