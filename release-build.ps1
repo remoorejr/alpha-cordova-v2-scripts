@@ -65,21 +65,38 @@ if ($BuildMode -eq "Turbo") {
         if ($null -eq $targetLatest -or $sourceLatest -gt $targetLatest) {
             Write-Host "`n🔊 Code change detected in www/ directory! Syncing assets..." -ForegroundColor Cyan
             Play-AudioAlert -Event "Sync"
-            Copy-Item -Recurse -Force "www/*" "$androidRoot/app/src/main/assets/www/"
+            
+            # Ensure the destination exists first
+            if (!(Test-Path "$androidRoot/app/src/main/assets/www/")) { 
+                 New-Item -ItemType Directory -Path "$androidRoot/app/src/main/assets/www/" -Force | Out-Null
+            }
+
+            # RELIABLE COPY: Using Get-ChildItem prevents the "leaf item" error
+            Get-ChildItem -Path "www\*" | ForEach-Object {
+                Copy-Item -Path $_.FullName -Destination "$androidRoot/app/src/main/assets/www/" -Recurse -Force
+            }
         } else {
-            # FIXED: NO MORE DARK GRAY!
             Write-Host "`n⏩ No changes detected in www/. Skipping UI file sync." -ForegroundColor DarkCyan
         }
-    }
+    } # <-- End of if (Test-Path "www")
 
+    # --- Gradle Execution ---
     if (-not (Test-Path $androidRoot)) {
         Write-Host "❌ Error: Platforms folder missing. Run Option 1 (Full Reset) first." -ForegroundColor Red
         Play-AudioAlert -Event "Error"
         exit 1
     }
 
+    # Move context into the Android platform folder
     Push-Location $androidRoot
     
+    # Final check: Ensure we are standing next to gradlew.bat
+    if (-not (Test-Path "gradlew.bat")) {
+        Write-Host "❌ Error: gradlew.bat not found in $androidRoot. Full build required." -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+
     $gradleArgs = @(
         "assembleDebug", 
         "--parallel", 
@@ -94,6 +111,7 @@ if ($BuildMode -eq "Turbo") {
             chmod +x gradlew 2>$null
             & sh ./gradlew $gradleArgs
         } else {
+            # Use & to execute the local file explicitly
             & .\gradlew.bat $gradleArgs
         }
         
@@ -108,8 +126,7 @@ if ($BuildMode -eq "Turbo") {
     }
     
     Pop-Location 
-
-} 
+} # <-- End of if ($BuildMode -eq "Turbo")
 else {
     # ==============================================================================
     # FULL RESET
