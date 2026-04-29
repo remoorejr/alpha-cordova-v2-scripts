@@ -14,6 +14,9 @@ npm-debug.log*
 yarn-error.log*
 .DS_Store
 Thumbs.db
+# Added for v2.8.1 Team Workflow
+android_cache/
+.env
 
 # --- Security & Signing (CRITICAL) ---
 *.keystore
@@ -23,21 +26,20 @@ release-signing.properties
 
 # --- Build Outputs ---
 # We ignore these because the scripts regenerate them
-# Users should grab them from the /outputs/ folder, not Git
 *.apk
 *.aab
 *.idsig
 
 # --- IDEs ---
-.DS_Store
-Thumbs.db
 .idea/
 *.sublime-project
 *.sublime-workspace
+.vscode/
 
 # --- Automation Suite ---
-# Keep the scripts, but ignore local temporary logs
 release-build-log.txt
+# Temporary triage scripts
+triage_v*.ps1
 
-# --- Sync State monitors changes in www directory ---
+# --- Sync State ---
 .last_sync_hash

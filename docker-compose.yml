@@ -6,17 +6,28 @@ services:
     volumes:
       - .:/home/cordovauser/app
       - ./android_cache:/home/cordovauser/.android
-      - ./android_cache:/root/.android               # Bridge: Ensures root builds save to the same cache
+      - ./android_cache:/root/.android
       - platforms_cache:/home/cordovauser/app/platforms
       - modules_cache:/home/cordovauser/app/node_modules
       - plugins_cache:/home/cordovauser/app/plugins
-      - /home/cordovauser/.config
       - gradle_cache:/home/cordovauser/.gradle
       - npm_cache:/home/cordovauser/.npm
     environment:
       - CI=true
-      - GRADLE_USER_HOME=/home/cordovauser/.android  # Forces Gradle to find the keystore in our volume
-      - ANDROID_USER_HOME=/home/cordovauser/.android # Forces Android tools to use the persistent path
+      # Force internal container paths to prevent host SDK leakage
+      - ANDROID_HOME=/opt/android-sdk
+      - ANDROID_SDK_ROOT=/opt/android-sdk
+      - JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+      - PATH=/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/opt/android-sdk/build-tools/${BUILD_TOOLS_VERSION:-36.0.0}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      
+      # Use developer identity from .env
+      - GIT_AUTHOR_NAME=${GIT_USER_NAME:-Alpha Developer}
+      - GIT_AUTHOR_EMAIL=${GIT_USER_EMAIL:-dev@alpha.com}
+      - GIT_COMMITTER_NAME=${GIT_USER_NAME:-Alpha Developer}
+      - GIT_COMMITTER_EMAIL=${GIT_USER_EMAIL:-dev@alpha.com}
+      
+      - GRADLE_USER_HOME=/home/cordovauser/.android
+      - ANDROID_USER_HOME=/home/cordovauser/.android
     user: root 
     tty: true
     stdin_open: true
