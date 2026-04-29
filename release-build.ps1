@@ -78,7 +78,7 @@ if ($BuildMode -eq "Turbo") {
         } else {
             Write-Host "`n⏩ No changes detected in www/. Skipping UI file sync." -ForegroundColor DarkCyan
         }
-    } # <-- End of if (Test-Path "www")
+    }
 
     # --- Gradle Execution ---
     if (-not (Test-Path $androidRoot)) {
@@ -87,33 +87,12 @@ if ($BuildMode -eq "Turbo") {
         exit 1
     }
 
-    # Move context into the Android platform folder
-    Push-Location $androidRoot
-    
-    # Final check: Ensure we are standing next to gradlew.bat
-    if (-not (Test-Path "gradlew.bat")) {
-        Write-Host "❌ Error: gradlew.bat not found in $androidRoot. Full build required." -ForegroundColor Red
-        Pop-Location
-        exit 1
-    }
+    $gradleArgs = "assembleDebug --parallel --build-cache --daemon --configure-on-demand"
 
-    $gradleArgs = @(
-        "assembleDebug", 
-        "--parallel", 
-        "--build-cache", 
-        "--daemon", 
-        "--configure-on-demand"
-    )
-
-    Write-Host "🛠️  Running Optimized Gradle Build..." -ForegroundColor Green
+    Write-Host "🛠️  Running Optimized Gradle Build (Container Tunnel)..." -ForegroundColor Green
     try {
-        if ($IsLinux -or $PSVersionTable.OS -like "*Linux*") {
-            chmod +x gradlew 2>$null
-            & sh ./gradlew $gradleArgs
-        } else {
-            # Use & to execute the local file explicitly
-            & .\gradlew.bat $gradleArgs
-        }
+        # CRITICAL FIX: Use the container's JDK to run Gradle
+        docker compose run --rm builder sh -c "cd platforms/android && chmod +x gradlew && ./gradlew $gradleArgs"
         
         if ($LASTEXITCODE -ne 0) { throw "Gradle failed with code $LASTEXITCODE" }
         Write-Host "✅ Build Successful!" -ForegroundColor Green
@@ -121,26 +100,26 @@ if ($BuildMode -eq "Turbo") {
     catch {
         Write-Host "❌ Build Error: $_" -ForegroundColor Red
         Play-AudioAlert -Event "Error"
-        Pop-Location
         exit 1
     }
-    
-    Pop-Location 
-} # <-- End of if ($BuildMode -eq "Turbo")
+} 
 else {
     # ==============================================================================
     # FULL RESET
     # ==============================================================================
     Write-Host "🔄 Full Reset: Rebuilding Android Platform..." -ForegroundColor Magenta
-    
+
     if (Test-Path "platforms/android") {
-        cordova platform remove android --force | Out-Null
+        Write-Host "🗑️ Removing old platform..." -ForegroundColor Gray
+        docker compose run --rm builder cordova platform remove android --force | Out-Null
     }
-    cordova platform add android@15.0.0
-    
-    Write-Host "🛠️  Running Standard Cordova Build to initialize environment..." -ForegroundColor Green
-    cordova build android --debug
-    
+
+    Write-Host "➕ Adding Android 15.0.0..." -ForegroundColor Gray
+    docker compose run --rm builder cordova platform add android@15.0.0
+
+    Write-Host "🛠️ Running Standard Cordova Build to initialize environment..." -ForegroundColor Green
+    docker compose run --rm builder cordova build android --debug
+
     if ($LASTEXITCODE -ne 0) {
         Write-Host "❌ Cordova Build Failed" -ForegroundColor Red
         Play-AudioAlert -Event "Error"
@@ -151,7 +130,6 @@ else {
 # ==============================================================================
 # ARTIFACT EXPORT & DEPLOYMENT LOGIC
 # ==============================================================================
-
 $apkPath = Get-ChildItem -Path $androidRoot -Filter "*debug*.apk" -Recurse -ErrorAction SilentlyContinue | 
            Sort-Object LastWriteTime -Descending | 
            Select-Object -First 1 -ExpandProperty FullName
@@ -168,8 +146,8 @@ if ($apkPath -and (Test-Path $apkPath)) {
     Copy-Item -Path $apkPath -Destination "$exportDir/app-debug.apk" -Force
     
     if ($Install) {
-        Write-Host "🚀 Installing via ADB to connected device..." -ForegroundColor Yellow
-        & adb install -r -d -t "$exportDir/app-debug.apk"
+        Write-Host "🚀 Installing via ADB (Container Tunnel)..." -ForegroundColor Yellow
+        docker compose run --rm builder adb install -r -d -t "debug/app-debug.apk"
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✨ App installed and updated successfully!" -ForegroundColor Green
@@ -184,8 +162,9 @@ if ($apkPath -and (Test-Path $apkPath)) {
 } else {
     Write-Host "⚠️ APK not found in any build directory." -ForegroundColor Red
     if ($Install) {
-        Write-Host "Falling back to Cordova run..." -ForegroundColor Yellow
-        cordova run android --nobuild --device
+        Write-Host "Falling back to Cordova run (Container Tunnel)..." -ForegroundColor Yellow
+        docker compose run --rm builder cordova run android --nobuild --device
+        
         if ($LASTEXITCODE -eq 0) {
             Play-AudioAlert -Event "Success"
         } else {
