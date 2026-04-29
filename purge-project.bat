@@ -1,5 +1,8 @@
 @echo off
+@cls
+chcp 65001 > nul
 setlocal enabledelayedexpansion
+
 set "TARGET_DIR=%~dp0"
 if "%TARGET_DIR:~-1%"=="\" set "TARGET_DIR=%TARGET_DIR:~0,-1%"
 
