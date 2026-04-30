@@ -9,13 +9,13 @@ if "%TARGET_DIR:~-1%"=="\" set "TARGET_DIR=%TARGET_DIR:~0,-1%"
 echo ─────────────────────────────────────────────────────────────────
 echo ⚠️  WARNING: PERMANENT DELETION OF BUILD ASSETS
 echo ─────────────────────────────────────────────────────────────────
-echo This script will use Docker to force-remove the following:
-echo   - /platforms (Docker-locked)
-echo   - /plugins   (Docker-locked)
-echo   - /node_modules
+echo This script will execute a Deep Clean:
+echo   1. Shut down the background Dev Container.
+echo   2. Destroy all Docker Named Volumes (Gradle/SDK caches).
+echo   3. Force-remove Docker-locked folders (/platforms, /plugins).
 echo.
-echo This action is required if you want to delete the entire project
-echo folder without Windows "Access Denied" errors.
+echo This action is required if you want to completely reset the
+echo environment or delete the project without "Access Denied" errors.
 echo ─────────────────────────────────────────────────────────────────
 echo.
 
@@ -30,11 +30,15 @@ if /i "!CONFIRM!" neq "Y" (
 )
 
 echo.
-echo 🔥 [PURGE] Initializing Docker Janitor...
-docker run --rm -v "%TARGET_DIR%:/work" alpine sh -c "rm -rf /work/platforms /work/plugins /work/node_modules"
+echo 🛑 [SHUTDOWN] Stopping persistent Dev Container and wiping volumes...
+docker compose down -v
 
 echo.
-echo ✅ [SUCCESS] Docker-locked folders have been removed.
-echo 📁 You can now safely right-click and delete the project directory.
+echo 🔥 [PURGE] Initializing Docker Janitor to clean host files...
+docker run --rm -v "%TARGET_DIR%:/work" alpine sh -c "rm -rf /work/platforms /work/plugins /work/node_modules /work/debug /work/.turbo_ready"
+
+echo.
+echo ✅ [SUCCESS] Environment destroyed and host files unlocked.
+echo 📁 You can now safely run a Full Reset or delete the project directory.
 echo.
 pause

@@ -1,4 +1,5 @@
 @echo off
+cd /d "%~dp0"
 @cls
 chcp 65001 > nul
 setlocal enabledelayedexpansion
@@ -32,7 +33,7 @@ echo.
 echo  [1] 🔄 Full Reset: Wipe, Re-init, Build and Install
 
 :: Use a more explicit check with GOTO logic to avoid IF/ELSE block display bugs
-if exist "platforms\android" (
+if exist ".turbo_ready" (
     echo  [2] 🚀 Turbo Sync: UI/JS/CSS Updates + Install (Fast^)
 ) else (
     echo  [2] 🚀 [90mTurbo Sync: (Disabled - Full Reset Required^)[0m
@@ -56,7 +57,7 @@ goto :menu
 
 :check_turbo
 :: Re-verify existence just in case the user forced "2"
-if not exist "platforms\android" (
+IF NOT EXIST ".turbo_ready" (
     echo.
     echo ⚠️  [ERROR] Turbo Sync is unavailable. 
     echo    The Android platform has not been initialized yet.
