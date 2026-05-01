@@ -25,9 +25,9 @@ My-Cordova-App/
 ## 🛠️ Installation & Setup
 
 1. **Download:** Clone this repo or download the ZIP and place all files into your **Cordova Project Root**.
-2. **Configure Git:** Open `docker-compose.yml` and set your identity so the auto-tagging works:
+2. **Configure Git:** Open `.env` and set your identity so the auto-tagging works:
    ```yaml
-   environment:
+   .env
      - GIT_USER_NAME=Your Name
      - GIT_USER_EMAIL=you@example.com
    ```
