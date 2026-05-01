@@ -1,7 +1,7 @@
 ﻿<#
 .SYNOPSIS
-    Alpha Cordova Production Build Engine v2.8.1
-    Features: Zero-Install ADB Tunneling, Keystore Validation, Volume Extraction, and Hybrid Deployment.
+    Alpha Cordova Production Build Engine v2.8.2
+    Features: Zero-Install ADB Tunneling, Keystore Validation, Volume Extraction, Hybrid Deployment, and Asset Triage.
 #>
 
 param (
@@ -27,7 +27,7 @@ function Play-Success { [console]::Beep(800, 200); [console]::Beep(1200, 400) }
 function Play-Error   { [console]::Beep(300, 600) }
 
 function Increment-Version {
-    Write-Host ">> Step 1/5: Incrementing Version..." -ForegroundColor Cyan
+    Write-Host ">> Step 2/5: Incrementing Version..." -ForegroundColor Cyan
     [xml]$config = Get-Content $C_FILE
     $parts = $config.widget.version -split '\.'
     if ($parts.Count -ge 3) { $parts[2] = [int]$parts[2] + 1; $newV = $parts -join '.' } 
@@ -43,8 +43,8 @@ function Increment-Version {
 }
 
 function Reset-Environment {
-    Write-Host ">> Step 2/5: Deep Cleaning & Purging Volumes..." -ForegroundColor Yellow
-    # 1. Kill any background Dev Containers and wipe the high-speed caches
+    Write-Host ">> Step 3/5: Deep Cleaning & Purging Volumes..." -ForegroundColor Yellow
+    # 1. Kill any background Dev Containers and wipe the high-speed caches for a sterile build
     docker compose down -v | Out-Null
     
     # 2. Use the Docker Janitor to bypass Windows file-locking issues
@@ -61,13 +61,50 @@ try {
         throw "Missing .keystore file. Production builds require a signing key in the project root."
     }
 
+    # ==============================================================================
+    # STEP 1: ALPHA ANYWHERE ASSET TRIAGE
+    # ==============================================================================
+    Write-Host ">> Step 1/5: Asset Triage..." -ForegroundColor Yellow
+    if (Test-Path "temp") {
+        Write-Host "   📂 Alpha export detected. Migrating assets..." -ForegroundColor Cyan
+        if (Test-Path "www") { Remove-Item -Path "www" -Recurse -Force }
+        New-Item -ItemType Directory -Path "www" -Force | Out-Null
+        Copy-Item -Path "temp\*" -Destination "www" -Recurse -Force
+        
+        $tempConfig = Join-Path "www" "config.xml"
+        if (Test-Path $tempConfig) {
+            $xmlText = [System.IO.File]::ReadAllText($tempConfig)
+            $xmlText = $xmlText -replace '(?i)<preference[^>]*name="AndroidXEnabled"[^>]*>', ''
+            $xmlText = $xmlText -replace '(?i)<plugin[^>]*name="cordova-plugin-androidx-adapter"[^>]*>', ''
+            $xmlText = $xmlText -replace 'src="res/', 'src="www/res/'
+            $xmlText = $xmlText -replace "src='res/", "src='www/res/"
+            $xmlText = $xmlText -replace 'value="res/', 'value="www/res/'
+            $xmlText = $xmlText -replace "value='res/", "value='www/res/"
+            
+            if ($xmlText -match 'android-compileSdkVersion') {
+                $xmlText = $xmlText -replace 'name="android-compileSdkVersion"\s+value=["'']\d+["'']', 'name="android-compileSdkVersion" value="36"'
+            } else {
+                $xmlText = $xmlText -replace '</widget>', "    <preference name=`"android-compileSdkVersion`" value=`"36`" />`n</widget>"
+            }
+            
+            [System.IO.File]::WriteAllText($C_FILE, $xmlText, $Utf8NoBom)
+            Remove-Item -Path $tempConfig -Force
+            Write-Host "   📄 Sanitized config.xml for Android 15 (API 36)." -ForegroundColor Gray
+        }
+        Remove-Item -Path "temp" -Recurse -Force
+        Write-Host "   ✅ Migration complete." -ForegroundColor Green
+    } else {
+        Write-Host "   ✅ No new exports found. Using existing assets." -ForegroundColor Green
+    }
+
+    # Execute Versioning and Deep Clean
     Increment-Version
     Reset-Environment
     
     [xml]$xml = Get-Content $C_FILE
     $ID = $xml.widget.id
     
-    Write-Host ">> Step 3/5: Bootstrapping Clean Platform (Containerized)..." -ForegroundColor Yellow
+    Write-Host ">> Step 4/5: Bootstrapping Clean Platform (Containerized)..." -ForegroundColor Yellow
     
     # 1. Create package.json (BOM-LESS)
     $manifestObj = [PSCustomObject]@{
@@ -82,7 +119,7 @@ try {
     docker compose up -d $DOCKER_SERVICE | Out-Null
     docker compose exec $DOCKER_SERVICE sh -c "npm install && cordova platform add android --nosave && chmod -R +x platforms/android/cordova"
     
-    Write-Host ">> Step 4/5: Compiling Signed Release $PackageType..." -ForegroundColor Cyan
+    Write-Host ">> Step 5/5: Compiling Signed Release $PackageType..." -ForegroundColor Cyan
     $pkgFlag = if ($PackageType -eq "aab") { "-- --packageType=bundle" } else { "-- --packageType=apk" }
 
     Write-Host "`n☕ Production builds are highly optimized and fully signed." -ForegroundColor Yellow
@@ -93,7 +130,7 @@ try {
     
     if ($LASTEXITCODE -eq 0) {
         # --- 5. PUBLISH & EXTRACT ---
-        Write-Host ">> Step 5/5: Extracting Artifact..." -ForegroundColor Yellow
+        Write-Host "`n📦 Extracting Artifact..." -ForegroundColor Yellow
         if (-not (Test-Path $RELEASE_DIR)) { New-Item -ItemType Directory -Path $RELEASE_DIR | Out-Null }
         
         $src = if ($PackageType -eq "aab") { 

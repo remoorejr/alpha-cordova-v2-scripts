@@ -46,6 +46,58 @@ function Play-AudioAlert {
 }
 
 # ==============================================================================
+# ALPHA ANYWHERE ASSET TRIAGE
+# ==============================================================================
+if (Test-Path "temp") {
+    Write-Host "`n📂 Alpha Anywhere export detected in 'temp' directory. Migrating assets..." -ForegroundColor Cyan
+    
+    # 1. Erase existing www directory
+    if (Test-Path "www") { Remove-Item -Path "www" -Recurse -Force }
+    
+    # 2. Recreate www and copy all files from temp
+    New-Item -ItemType Directory -Path "www" -Force | Out-Null
+    Copy-Item -Path "temp\*" -Destination "www" -Recurse -Force
+    
+    # 3. Safely sanitize config.xml
+    $tempConfig = Join-Path "www" "config.xml"
+    if (Test-Path $tempConfig) {
+        
+        # Read the entire file as a single raw string (immune to line-break formatting)
+        $xmlText = [System.IO.File]::ReadAllText($tempConfig)
+        
+        # Strip outdated AndroidX plugins/preferences by targeting the XML tags directly
+        $xmlText = $xmlText -replace '(?i)<preference[^>]*name="AndroidXEnabled"[^>]*>', ''
+        $xmlText = $xmlText -replace '(?i)<plugin[^>]*name="cordova-plugin-androidx-adapter"[^>]*>', ''
+        
+        # Fix Alpha Anywhere resource paths
+        $xmlText = $xmlText -replace 'src="res/', 'src="www/res/'
+        $xmlText = $xmlText -replace "src='res/", "src='www/res/"
+        $xmlText = $xmlText -replace 'value="res/', 'value="www/res/'
+        $xmlText = $xmlText -replace "value='res/", "value='www/res/"
+        
+        # Enforce SDK Version 36
+        if ($xmlText -match 'android-compileSdkVersion') {
+            $xmlText = $xmlText -replace 'name="android-compileSdkVersion"\s+value=["'']\d+["'']', 'name="android-compileSdkVersion" value="36"'
+        } else {
+            # Safely inject right before the closing widget tag
+            $xmlText = $xmlText -replace '</widget>', "    <preference name=`"android-compileSdkVersion`" value=`"36`" />`n</widget>"
+        }
+        
+        # Save the sanitized file to the project root using No-BOM UTF-8
+        $Utf8NoBom = New-Object System.Text.UTF8Encoding($False)
+        [System.IO.File]::WriteAllText((Join-Path (Get-Location) "config.xml"), $xmlText, $Utf8NoBom)
+        
+        # Remove the original temp config
+        Remove-Item -Path $tempConfig -Force
+        Write-Host "📄 Moved and Sanitized config.xml for Android 15 (API 36)." -ForegroundColor Gray
+    }
+    
+    # 4. Clean up temp folder so it doesn't trigger again until a new export
+    Remove-Item -Path "temp" -Recurse -Force
+    Write-Host "✅ Asset migration complete." -ForegroundColor Green
+}
+
+# ==============================================================================
 # AIRTIGHT TURBO DETECTION
 # ==============================================================================
 if ($Quick -or $BuildMode -match "Turbo" -or $args -match "Turbo") {
@@ -96,10 +148,10 @@ else {
     # ==============================================================================
     Write-Host "🔄 Full Reset: Rebuilding Android Platform..." -ForegroundColor Magenta
 
-    if (Test-Path "platforms/android") {
-        Write-Host "🗑️ Removing old platform..." -ForegroundColor Gray
-        docker compose exec builder cordova platform remove android --force | Out-Null
-    }
+    Write-Host "🗑️ Removing old platform (Container Execution)..." -ForegroundColor Gray
+    # We execute this blindly inside the container since Windows can't see the volume
+    # '|| true' ensures the script doesn't crash if the platform doesn't exist yet
+    docker compose exec builder sh -c "cordova platform remove android --force 2>/dev/null || true"
 
     Write-Host "➕ Adding Android 15.0.0..." -ForegroundColor Gray
     docker compose exec builder cordova platform add android@15.0.0
