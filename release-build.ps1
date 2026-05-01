@@ -1,6 +1,6 @@
 ﻿# ==============================================================================
-# Alpha Cordova V2 Build Engine
-# Optimized for Turbo Sync, ADB Deployment, Artifact Export, and Audio
+# Alpha Cordova V2 Build Engine (v2.8.2)
+# Features: Asset Triage, Zero-Install Turbo Sync, Pre-Warming, Smart Deploy
 # ==============================================================================
 
 param (
@@ -16,6 +16,10 @@ param (
 
 # Ensure the background Dev Container is running
 docker compose up -d builder | Out-Null
+
+# Force terminal to UTF8 and create the No-BOM encoder
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($False)
 
 # ==============================================================================
 # AUDIO INTERFACE
@@ -46,6 +50,57 @@ function Play-AudioAlert {
 }
 
 # ==============================================================================
+# ALPHA ANYWHERE ASSET TRIAGE
+# ==============================================================================
+if (Test-Path "temp") {
+    Write-Host "`n📂 Alpha Anywhere export detected in 'temp' directory. Migrating assets..." -ForegroundColor Cyan
+    
+    # 1. Erase existing www directory
+    if (Test-Path "www") { Remove-Item -Path "www" -Recurse -Force }
+    
+    # 2. Recreate www and use bulletproof copy logic
+    New-Item -ItemType Directory -Path "www" -Force | Out-Null
+    Get-ChildItem -Path "temp" | Copy-Item -Destination "www" -Recurse -Force
+    
+    # 3. Safely sanitize config.xml using Regex
+    $tempConfig = Join-Path "www" "config.xml"
+    if (Test-Path $tempConfig) {
+        
+        # Read the entire file as a single raw string
+        $xmlText = [System.IO.File]::ReadAllText($tempConfig)
+        
+        # Strip outdated AndroidX plugins/preferences
+        $xmlText = $xmlText -replace '(?i)<preference[^>]*name="AndroidXEnabled"[^>]*>', ''
+        $xmlText = $xmlText -replace '(?i)<plugin[^>]*name="cordova-plugin-androidx-adapter"[^>]*>', ''
+        
+        # Fix Alpha Anywhere resource paths
+        $xmlText = $xmlText -replace 'src="res/', 'src="www/res/'
+        $xmlText = $xmlText -replace "src='res/", "src='www/res/"
+        $xmlText = $xmlText -replace 'value="res/', 'value="www/res/'
+        $xmlText = $xmlText -replace "value='res/", "value='www/res/"
+        
+        # Enforce SDK Version 36
+        if ($xmlText -match 'android-compileSdkVersion') {
+            $xmlText = $xmlText -replace 'name="android-compileSdkVersion"\s+value=["'']\d+["'']', 'name="android-compileSdkVersion" value="36"'
+        } else {
+            # Safely inject right before the closing widget tag
+            $xmlText = $xmlText -replace '</widget>', "    <preference name=`"android-compileSdkVersion`" value=`"36`" />`n</widget>"
+        }
+        
+        # Save the sanitized file to the project root using No-BOM UTF-8
+        [System.IO.File]::WriteAllText((Join-Path (Get-Location) "config.xml"), $xmlText, $Utf8NoBom)
+        
+        # Remove the original temp config
+        Remove-Item -Path $tempConfig -Force
+        Write-Host "📄 Moved and Sanitized config.xml for Android 15 (API 36)." -ForegroundColor Gray
+    }
+    
+    # 4. Clean up temp folder so it doesn't trigger again until a new export
+    Remove-Item -Path "temp" -Recurse -Force
+    Write-Host "✅ Asset migration complete." -ForegroundColor Green
+}
+
+# ==============================================================================
 # AIRTIGHT TURBO DETECTION
 # ==============================================================================
 if ($Quick -or $BuildMode -match "Turbo" -or $args -match "Turbo") {
@@ -53,8 +108,6 @@ if ($Quick -or $BuildMode -match "Turbo" -or $args -match "Turbo") {
 } else {
     $BuildMode = "Full" 
 }
-
-$androidRoot = "platforms/android"
 
 Write-Host "`n🚀 Starting $BuildMode Build Engine..." -ForegroundColor Cyan
 
@@ -68,16 +121,44 @@ if ($BuildMode -eq "Turbo") {
         exit 1
     }
 
+    # ==========================================================================
+    # SMART ASSET DETECTION
+    # ==========================================================================
+    $wwwFiles = Get-ChildItem -Path "www" -Recurse -File
+    if ($wwwFiles.Count -gt 0) {
+        # Find the timestamp of the most recently modified file in www
+        $wwwNewest = ($wwwFiles | Measure-Object -Property LastWriteTime -Maximum).Maximum
+        $lastSyncFile = ".last_sync_time"
+        
+        # Load the timestamp of the last successful Turbo Sync
+        $lastSync = if (Test-Path $lastSyncFile) { [datetime](Get-Content $lastSyncFile) } else { [datetime]::MinValue }
+        
+        if ($wwwNewest -gt $lastSync) {
+            Write-Host "🔍 Code changes detected in 'www' directory!" -ForegroundColor Magenta
+            Write-Host "📂 Syncing updated assets to container..." -ForegroundColor Gray
+            
+            $syncCmd = "mkdir -p platforms/android/app/src/main/assets/www && cp -a www/. platforms/android/app/src/main/assets/www/"
+            
+            # Save the new timestamp for the next run (using ISO 8601 format for safety)
+            $wwwNewest.ToString("o") | Set-Content $lastSyncFile -Force
+        } else {
+            Write-Host "⏭️ No UI changes detected in 'www'. Skipping asset copy..." -ForegroundColor Yellow
+            $syncCmd = "true" # Bash No-Op (does nothing successfully)
+        }
+    } else {
+        $syncCmd = "true"
+    }
+
     $gradleArgs = "assembleDebug --parallel --build-cache --daemon --configure-on-demand"
     
-    # We combine the Sync and the Build into ONE single command to avoid the 15-second Docker startup penalty
-    $combinedCmd = "mkdir -p platforms/android/app/src/main/assets/www && cp -a www/. platforms/android/app/src/main/assets/www/ && cd platforms/android && chmod +x gradlew && ./gradlew $gradleArgs"
+    # We combine the Sync (if any) and the Build into ONE single command
+    $combinedCmd = "$syncCmd && cd platforms/android && chmod +x gradlew && ./gradlew $gradleArgs"
 
-    Write-Host "🛠️ Running Unified Fast-Sync & Build..." -ForegroundColor Green
+    Write-Host "🛠️ Running Fast Gradle Build..." -ForegroundColor Green
     Play-AudioAlert -Event "Sync"
     
     try {
-        # Execute everything inside a single container lifecycle using 'exec'
+        # Execute everything inside the awake container
         docker compose exec builder sh -c $combinedCmd
         
         if ($LASTEXITCODE -ne 0) { throw "Gradle failed with code $LASTEXITCODE" }
@@ -92,13 +173,12 @@ if ($BuildMode -eq "Turbo") {
 
 else {
     # ==============================================================================
-    # FULL RESET
+    # FULL RESET & CACHE PRE-WARMING
     # ==============================================================================
     Write-Host "🔄 Full Reset: Rebuilding Android Platform..." -ForegroundColor Magenta
 
     Write-Host "🗑️ Removing old platform (Container Execution)..." -ForegroundColor Cyan
-    # We execute this blindly inside the container since Windows can't see the volume
-    # '|| true' ensures the script doesn't crash if the platform doesn't exist yet
+    # Execute blindly inside the container since Windows can't see the volume
     docker compose exec builder sh -c "cordova platform remove android --force 2>/dev/null || true"
 
     Write-Host "➕ Adding Android 15.0.0..." -ForegroundColor Gray
@@ -112,11 +192,11 @@ else {
         Play-AudioAlert -Event "Error"
         exit 1
     } else {
-        # ✅ NEW: Create a state flag in the project root (which Windows CAN see)
-        Write-Host "✅ Initialization Complete. Unlocking Turbo Sync..." -ForegroundColor Cyan
+        # Create a state flag in the project root
+        Write-Host "✅ Initialization Complete. Unlocking Turbo Sync..." -ForegroundColor Green
         New-Item -ItemType File -Path ".turbo_ready" -Force | Out-Null
         
-        # 🔥 NEW: Pre-warm the Turbo Sync Gradle Daemon
+        # Pre-warm the Turbo Sync Gradle Daemon
         Write-Host "🔥 Pre-Warming Turbo Cache (This takes ~15s)..." -ForegroundColor Yellow
         $gradleArgs = "assembleDebug --parallel --build-cache --daemon --configure-on-demand"
         docker compose exec builder sh -c "cd platforms/android && chmod +x gradlew && ./gradlew $gradleArgs > /dev/null 2>&1"
@@ -178,16 +258,16 @@ if (Test-Path $apkPath) {
         # ----------------------------------------------------------------------
         if (-not $deployed) {
             Write-Host "`n📱 [Wireless Deployment]" -ForegroundColor Cyan
-            Write-Host "Please check your phone's 'Wireless Debugging' settings." -ForegroundColor Yellow
+            Write-Host "Please check your phone's 'Wireless Debugging' settings." -ForegroundColor Gray
             $deviceIp = Read-Host "Enter Device IP and Port (e.g., 192.168.1.55:12345) or press Enter to skip"
             
             if (-not [string]::IsNullOrWhiteSpace($deviceIp)) {
-                Write-Host "🔗 Connecting container directly to phone via Wi-Fi..." -ForegroundColor Yellow
+                Write-Host "🔗 Connecting container directly to phone via Wi-Fi..." -ForegroundColor Gray
                 
                 # 1. Connect the Container's ADB to the Phone
                 docker compose exec builder adb connect $deviceIp | Out-Null
                 
-                # 2. Install the APK (Explicitly targeting the IP)
+                # 2. Install the APK
                 Write-Host "📲 Installing APK..." -ForegroundColor Magenta
                 docker compose exec builder adb -s $deviceIp install -r -d -t "debug/app-debug.apk"
                 
@@ -199,10 +279,10 @@ if (Test-Path $apkPath) {
                     Play-AudioAlert -Event "Error"
                 }
                 
-                # 3. Clean up the connection to prevent ghost devices on the next run
+                # 3. Clean up the connection
                 docker compose exec builder adb disconnect $deviceIp | Out-Null
             } else {
-                Write-Host "⏭️ Skipped installation." -ForegroundColor Yellow
+                Write-Host "⏭️ Skipped installation." -ForegroundColor Red
             }
         }
     }

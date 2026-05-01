@@ -35,7 +35,7 @@ docker compose down -v
 
 echo.
 echo 🔥 [PURGE] Initializing Docker Janitor to clean host files...
-docker run --rm -v "%TARGET_DIR%:/work" alpine sh -c "rm -rf /work/platforms /work/plugins /work/node_modules /work/debug /work/.turbo_ready"
+docker run --rm -v "%TARGET_DIR%:/work" alpine sh -c "rm -rf /work/platforms /work/plugins /work/node_modules /work/debug /work/.turbo_ready /work/android_cache"
 
 echo.
 echo ✅ [SUCCESS] Environment destroyed and host files unlocked.
