@@ -27,7 +27,7 @@ function Play-Success { [console]::Beep(800, 200); [console]::Beep(1200, 400) }
 function Play-Error   { [console]::Beep(300, 600) }
 
 function Increment-Version {
-    Write-Host ">> Step 2/5: Incrementing Version..." -ForegroundColor Cyan
+    Write-Host ">> Step 2/4: Incrementing Version..." -ForegroundColor Cyan
     [xml]$config = Get-Content $C_FILE
     $parts = $config.widget.version -split '\.'
     if ($parts.Count -ge 3) { $parts[2] = [int]$parts[2] + 1; $newV = $parts -join '.' } 
@@ -43,7 +43,7 @@ function Increment-Version {
 }
 
 function Reset-Environment {
-    Write-Host ">> Step 3/5: Deep Cleaning & Purging Volumes..." -ForegroundColor Yellow
+    Write-Host ">> Step 3/4: Deep Cleaning & Purging Volumes..." -ForegroundColor Yellow
     # 1. Kill any background Dev Containers and wipe the high-speed caches for a sterile build
     docker compose down -v | Out-Null
     
@@ -64,12 +64,14 @@ try {
     # ==============================================================================
     # STEP 1: ALPHA ANYWHERE ASSET TRIAGE
     # ==============================================================================
-    Write-Host ">> Step 1/5: Asset Triage..." -ForegroundColor Yellow
+    Write-Host ">> Step 1/4: Asset Triage..." -ForegroundColor Yellow
     if (Test-Path "temp") {
         Write-Host "   📂 Alpha export detected. Migrating assets..." -ForegroundColor Cyan
         if (Test-Path "www") { Remove-Item -Path "www" -Recurse -Force }
         New-Item -ItemType Directory -Path "www" -Force | Out-Null
-        Copy-Item -Path "temp\*" -Destination "www" -Recurse -Force
+        
+        # Bulletproof copy logic
+        Get-ChildItem -Path "temp" | Copy-Item -Destination "www" -Recurse -Force
         
         $tempConfig = Join-Path "www" "config.xml"
         if (Test-Path $tempConfig) {
@@ -104,7 +106,7 @@ try {
     [xml]$xml = Get-Content $C_FILE
     $ID = $xml.widget.id
     
-    Write-Host ">> Step 4/5: Bootstrapping Clean Platform (Containerized)..." -ForegroundColor Yellow
+    Write-Host ">> Step 4/4: Bootstrapping Clean Platform (Containerized)..." -ForegroundColor Yellow
     
     # 1. Create package.json (BOM-LESS)
     $manifestObj = [PSCustomObject]@{
@@ -117,15 +119,23 @@ try {
     
     # 2. Spin up the Production Build Container
     docker compose up -d $DOCKER_SERVICE | Out-Null
-    docker compose exec $DOCKER_SERVICE sh -c "npm install && cordova platform add android --nosave && chmod -R +x platforms/android/cordova"
     
-    Write-Host ">> Step 5/5: Compiling Signed Release $PackageType..." -ForegroundColor Cyan
+    # 3. 🔥 The Automated Permission Shield
+    Write-Host "   🔐 Aligning Volume Permissions for production..." -ForegroundColor Gray
+    $chownCmd = "chown -R cordovauser:cordovauser /home/cordovauser/app/platforms /home/cordovauser/app/plugins /home/cordovauser/app/node_modules /home/cordovauser/.gradle /home/cordovauser/.npm /home/cordovauser/.android 2>/dev/null || true"
+    docker compose exec -u root $DOCKER_SERVICE sh -c $chownCmd
+
+    # 4. Install Dependencies & Add Platform
+    Write-Host "   ➕ Installing Node Modules and Android 15.0.0..." -ForegroundColor Gray
+    docker compose exec $DOCKER_SERVICE sh -c "npm install && cordova platform add android@15.0.0 --nosave && chmod -R +x platforms/android/cordova"
+    
+    Write-Host "`n☕ Compiling Signed Release $PackageType..." -ForegroundColor Cyan
     $pkgFlag = if ($PackageType -eq "aab") { "-- --packageType=bundle" } else { "-- --packageType=apk" }
 
-    Write-Host "`n☕ Production builds are highly optimized and fully signed." -ForegroundColor Yellow
-    Write-Host "   Gradle compile can take 2 to 5 minutes..." -ForegroundColor Cyan
-    
-    # Execute Build inside container
+    Write-Host "   Production builds are highly optimized and fully signed." -ForegroundColor Yellow
+    Write-Host "   Gradle compile can take 2 to 5 minutes..." -ForegroundColor Gray
+
+    # 5. Execute Build inside container
     docker compose exec $DOCKER_SERVICE sh -c "cordova prepare android && cordova build android --release --buildConfig=build.json $pkgFlag"
     
     if ($LASTEXITCODE -eq 0) {
@@ -184,7 +194,7 @@ try {
                         else { Write-Host "⚠️ Wireless Install failed." -ForegroundColor Red }
                         
                         docker compose exec $DOCKER_SERVICE adb disconnect $deviceIp | Out-Null
-                    } else { Write-Host "⏭️ Skipped installation." -ForegroundColor DarkGray }
+                    } else { Write-Host "⏭️ Skipped installation." -ForegroundColor Yellow }
                 }
             }
         } else { Write-Host "❌ Failed to extract artifact from volume." -ForegroundColor Red }

@@ -177,7 +177,13 @@ else {
     # ==============================================================================
     Write-Host "🔄 Full Reset: Rebuilding Android Platform..." -ForegroundColor Magenta
 
-    Write-Host "🗑️ Removing old platform (Container Execution)..." -ForegroundColor Cyan
+    # 🔥 NEW: The Automated Permission Shield
+    # Force root to hand over the freshly created Docker volumes to our user
+    Write-Host "🔐 Aligning Volume Permissions for new environment..." -ForegroundColor Gray
+    $chownCmd = "chown -R cordovauser:cordovauser /home/cordovauser/app/platforms /home/cordovauser/app/plugins /home/cordovauser/app/node_modules /home/cordovauser/.gradle /home/cordovauser/.npm /home/cordovauser/.android 2>/dev/null || true"
+    docker compose exec -u root builder sh -c $chownCmd
+
+    Write-Host "🗑️ Removing old platform (Container Execution)..." -ForegroundColor Gray
     # Execute blindly inside the container since Windows can't see the volume
     docker compose exec builder sh -c "cordova platform remove android --force 2>/dev/null || true"
 
