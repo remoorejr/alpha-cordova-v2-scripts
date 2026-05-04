@@ -112,7 +112,7 @@ function Play-AudioAlert {
 }
 
 # ==============================================================================
-# ALPHA ANYWHERE ASSET TRIAGE (RESTORED)
+# ALPHA ANYWHERE ASSET TRIAGE
 # ==============================================================================
 if (Test-Path "temp") {
     Write-Host "`n📂 Alpha Anywhere export detected in 'temp' directory. Migrating assets..." -ForegroundColor Cyan
@@ -292,11 +292,9 @@ if (Test-Path $apkPath) {
         if ($localAdb) {
             Write-Host "🔍 Local ADB detected. Checking for connected USB devices..." -ForegroundColor Gray
             $adbDevices = & adb devices | Select-String -Pattern "\bdevice\b"
-            
             if ($adbDevices) {
                 Write-Host "🔗 USB Device found! Installing via Local ADB..." -ForegroundColor Magenta
                 & adb install -r -d -t $apkPath
-                
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "✨ App installed successfully (Local USB)!" -ForegroundColor Green
                     Play-AudioAlert -Event "Success"
