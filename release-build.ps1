@@ -72,22 +72,37 @@ if ($BuildMode -eq "VolPrune") {
 }
 
 # ==============================================================================
-# SMART CONFLICT RESOLUTION (Turbo-Friendly)
+# BULLETPROOF CONFLICT RESOLUTION (Turbo-Friendly)
 # ==============================================================================
 $conflictName = "alpha-cordova-dev"
-$containerStatus = docker inspect --format='{{.State.Status}}' $conflictName 2>$null
 
-if ($containerStatus) {
-    if ($containerStatus -eq "running") {
-        # Active and healthy - leave it alone for Turbo Sync!
-    } else {
-        Write-Host "`n🟡 Stale container '$conflictName' found (Status: $containerStatus). Reviving..." -ForegroundColor Yellow
+# 1. Check if the name is taken by ANY container on the system
+$existingContainer = docker ps -aq -f "name=^/${conflictName}$"
+
+if ($existingContainer) {
+    $existingContainer = $existingContainer.Trim()
+    
+    # 2. Ask Docker Compose if it owns this container in THIS specific directory
+    $composeOwner = docker compose ps -q builder 2>$null
+    if ($composeOwner) { $composeOwner = $composeOwner.Trim() }
+    
+    if ($existingContainer -ne $composeOwner) {
+        Write-Host "`n⚠️  Rogue container detected: '$conflictName' belongs to a different session. Forcing removal..." -ForegroundColor Yellow
         docker rm -f $conflictName | Out-Null
+    } else {
+        # 3. It belongs to us. Is it active?
+        $containerStatus = docker inspect --format='{{.State.Status}}' $conflictName 2>$null
+        if ($containerStatus -match "running") {
+            # Keep it alive for Turbo speed!
+        } else {
+            Write-Host "`n🟡 Stale container found. Reviving..." -ForegroundColor Yellow
+            docker rm -f $conflictName | Out-Null
+        }
     }
 }
 
-# Ensure the background Dev Container is running
-docker compose up -d builder | Out-Null
+# Ensure the background Dev Container is running (redirect errors to null to keep console clean)
+docker compose up -d builder 2>&1 | Out-Null
 
 # Force terminal to UTF8 and create the No-BOM encoder
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -321,3 +336,4 @@ if (Test-Path $apkPath) {
     Play-AudioAlert -Event "Error"
 }
 Write-Host "`n✨ Process Complete.`n" -ForegroundColor Green
+
