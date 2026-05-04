@@ -1,5 +1,5 @@
 ﻿# ==============================================================================
-# Alpha Cordova V2 Build Engine (v2.8.2)
+# Alpha Cordova V2 Build Engine (v2.8.5)
 # Features: Asset Triage, Zero-Install Turbo Sync, Pre-Warming, Smart Deploy
 # ==============================================================================
 
@@ -13,6 +13,78 @@ param (
     [switch]$Quick,
     [string]$Version = "1.0.0"
 )
+
+# ==============================================================================
+# ENGINE MANAGEMENT TASKS
+# ==============================================================================
+
+# TASK: SHUTDOWN (Standard Stop)
+if ($BuildMode -eq "Shutdown") {
+    Write-Host "`n🛑 Shutting down Alpha Cordova Build Engine..." -ForegroundColor Cyan
+    docker compose down
+    if (Test-Path ".turbo_ready") { 
+        Remove-Item ".turbo_ready" -Force 
+        Write-Host "🧹 Cleared Turbo state flags." -ForegroundColor Gray
+    }
+    Write-Host "✅ All containers stopped. Resources released." -ForegroundColor Green
+    exit 0
+}
+
+# TASK: PRUNE (Docker Housekeeping)
+if ($BuildMode -eq "Prune") {
+    Write-Host "`n🧹 Initiating Docker System Prune..." -ForegroundColor Cyan
+    Write-Host "This will remove all stopped containers and unused images." -ForegroundColor Gray
+    docker system prune -f
+    Write-Host "✅ Cleanup complete." -ForegroundColor Green
+    exit 0
+}
+
+# TASK: DEEP PURGE (The "Nuclear" Option)
+if ($BuildMode -eq "Purge") {
+    Write-Host "`n🔥 Starting Deep Purge..." -ForegroundColor Red
+    Write-Host "🛑 Destroying Docker volumes and containers..." -ForegroundColor Gray
+    docker compose down -v
+    
+    Write-Host "🧹 Unlocking host folders via Docker Janitor..." -ForegroundColor Gray
+    $currentDir = Get-Location
+    $foldersToWipe = "platforms plugins node_modules debug .turbo_ready android_cache"
+    docker run --rm -v "${currentDir}:/work" alpine sh -c "rm -rf $foldersToWipe"
+    
+    Write-Host "✨ Environment successfully nuked." -ForegroundColor Green
+    exit 0
+}
+
+# TASK: VOLPRUNE (Global Disk Cleanup)
+if ($BuildMode -eq "VolPrune") {
+    Write-Host "`n🗄️  Initiating Heavy Global Volume Wipe..." -ForegroundColor Red
+    Write-Host "🛑 Stopping all local containers to unlock volumes..." -ForegroundColor Gray
+    $running = docker ps -q
+    if ($running) { docker stop $running 2>$null }
+    
+    Write-Host "🧹 Scrubbing all unused volumes..." -ForegroundColor Gray
+    docker volume prune -a -f
+    
+    $volumes = docker volume ls -q
+    if ($volumes) { docker volume rm $volumes 2>$null }
+    
+    Write-Host "✅ Global disk cleanup complete." -ForegroundColor Green
+    exit 0
+}
+
+# ==============================================================================
+# SMART CONFLICT RESOLUTION (Turbo-Friendly)
+# ==============================================================================
+$conflictName = "alpha-cordova-dev"
+$containerStatus = docker inspect --format='{{.State.Status}}' $conflictName 2>$null
+
+if ($containerStatus) {
+    if ($containerStatus -eq "running") {
+        # Active and healthy - leave it alone for Turbo Sync!
+    } else {
+        Write-Host "`n🟡 Stale container '$conflictName' found (Status: $containerStatus). Reviving..." -ForegroundColor Yellow
+        docker rm -f $conflictName | Out-Null
+    }
+}
 
 # Ensure the background Dev Container is running
 docker compose up -d builder | Out-Null
@@ -31,26 +103,16 @@ function Play-AudioAlert {
             [console]::beep() 
         } else {
             switch ($Event) {
-                "Sync"    { 
-                    [System.Console]::Beep(1000, 100) 
-                    [System.Console]::Beep(1200, 150) 
-                }
-                "Success" { 
-                    [System.Console]::Beep(800, 200)
-                    [System.Console]::Beep(1000, 200)
-                    [System.Console]::Beep(1200, 400) 
-                }
-                "Error"   { 
-                    [System.Console]::Beep(400, 400)
-                    [System.Console]::Beep(300, 600) 
-                }
+                "Sync"    { [System.Console]::Beep(1000, 100); [System.Console]::Beep(1200, 150) }
+                "Success" { [System.Console]::Beep(800, 200); [System.Console]::Beep(1000, 200); [System.Console]::Beep(1200, 400) }
+                "Error"   { [System.Console]::Beep(400, 400); [System.Console]::Beep(300, 600) }
             }
         }
     } catch { } 
 }
 
 # ==============================================================================
-# ALPHA ANYWHERE ASSET TRIAGE
+# ALPHA ANYWHERE ASSET TRIAGE (RESTORED)
 # ==============================================================================
 if (Test-Path "temp") {
     Write-Host "`n📂 Alpha Anywhere export detected in 'temp' directory. Migrating assets..." -ForegroundColor Cyan
@@ -136,18 +198,15 @@ if ($BuildMode -eq "Turbo") {
         if ($wwwNewest -gt $lastSync) {
             Write-Host "🔍 Code changes detected in 'www' directory!" -ForegroundColor Magenta
             Write-Host "📂 Syncing updated assets to container..." -ForegroundColor Gray
-            
             $syncCmd = "mkdir -p platforms/android/app/src/main/assets/www && cp -a www/. platforms/android/app/src/main/assets/www/"
             
             # Save the new timestamp for the next run (using ISO 8601 format for safety)
             $wwwNewest.ToString("o") | Set-Content $lastSyncFile -Force
         } else {
             Write-Host "⏭️ No UI changes detected in 'www'. Skipping asset copy..." -ForegroundColor Yellow
-            $syncCmd = "true" # Bash No-Op (does nothing successfully)
+            $syncCmd = "true"
         }
-    } else {
-        $syncCmd = "true"
-    }
+    } else { $syncCmd = "true" }
 
     $gradleArgs = "assembleDebug --parallel --build-cache --daemon --configure-on-demand"
     
@@ -160,7 +219,6 @@ if ($BuildMode -eq "Turbo") {
     try {
         # Execute everything inside the awake container
         docker compose exec builder sh -c $combinedCmd
-        
         if ($LASTEXITCODE -ne 0) { throw "Gradle failed with code $LASTEXITCODE" }
         Write-Host "✅ Build Successful!" -ForegroundColor Green
     } 
@@ -190,7 +248,7 @@ else {
     Write-Host "➕ Adding Android 15.0.0..." -ForegroundColor Gray
     docker compose exec builder cordova platform add android@15.0.0
 
-    Write-Host "🛠️ Running Standard Cordova Build to initialize environment..." -ForegroundColor Green
+    Write-Host "🛠️ Running Standard Cordova Build..." -ForegroundColor Green
     docker compose exec builder cordova build android --debug
 
     if ($LASTEXITCODE -ne 0) {
@@ -201,19 +259,16 @@ else {
         # Create a state flag in the project root
         Write-Host "✅ Initialization Complete. Unlocking Turbo Sync..." -ForegroundColor Green
         New-Item -ItemType File -Path ".turbo_ready" -Force | Out-Null
-        
-        # Pre-warm the Turbo Sync Gradle Daemon
-        Write-Host "🔥 Pre-Warming Turbo Cache (This takes ~15s)..." -ForegroundColor Yellow
+        Write-Host "🔥 Pre-Warming Turbo Cache..." -ForegroundColor Yellow
         $gradleArgs = "assembleDebug --parallel --build-cache --daemon --configure-on-demand"
         docker compose exec builder sh -c "cd platforms/android && chmod +x gradlew && ./gradlew $gradleArgs > /dev/null 2>&1"
-        Write-Host "✨ Cache Ready! First Turbo Sync will now be instantaneous." -ForegroundColor Green
+        Write-Host "✨ Cache Ready!" -ForegroundColor Green
     }
 }
 
 # ==============================================================================
-# ARTIFACT EXPORT & HYBRID DEPLOYMENT LOGIC
+# ARTIFACT EXPORT & HYBRID DEPLOYMENT
 # ==============================================================================
-
 Write-Host "`n📦 Extracting APK from Container Volume..." -ForegroundColor Cyan
 
 # 1. Create a local debug folder if it doesn't exist
@@ -224,10 +279,8 @@ if (-not (Test-Path "debug")) { New-Item -ItemType Directory -Path "debug" | Out
 docker compose exec builder sh -c "cp platforms/android/app/build/outputs/apk/debug/app-debug.apk debug/app-debug.apk 2>/dev/null || true"
 
 $apkPath = "debug\app-debug.apk"
-
 if (Test-Path $apkPath) {
     Write-Host "✅ APK successfully exported to ./$apkPath" -ForegroundColor Green
-    
     if ($Install) {
         Write-Host "🚀 Initiating Smart Deployment..." -ForegroundColor Yellow
         $deployed = $false
@@ -249,51 +302,25 @@ if (Test-Path $apkPath) {
                     Write-Host "✨ App installed successfully (Local USB)!" -ForegroundColor Green
                     Play-AudioAlert -Event "Success"
                     $deployed = $true
-                } else {
-                    Write-Host "⚠️ Local ADB Install failed. Falling back to Wireless..." -ForegroundColor Yellow
                 }
-            } else {
-                Write-Host "⚠️ Local ADB found, but no USB devices connected. Falling back to Wireless..." -ForegroundColor Yellow
             }
-        } else {
-            Write-Host "🛡️ Zero-Install mode active (No local ADB detected)." -ForegroundColor Cyan
         }
-        
-        # ----------------------------------------------------------------------
-        # ROUTE B: WIRELESS ZERO-INSTALL (For Clean Machines)
-        # ----------------------------------------------------------------------
         if (-not $deployed) {
             Write-Host "`n📱 [Wireless Deployment]" -ForegroundColor Cyan
-            Write-Host "Please check your phone's 'Wireless Debugging' settings." -ForegroundColor Gray
             $deviceIp = Read-Host "Enter Device IP and Port (e.g., 192.168.1.55:12345) or press Enter to skip"
-            
             if (-not [string]::IsNullOrWhiteSpace($deviceIp)) {
-                Write-Host "🔗 Connecting container directly to phone via Wi-Fi..." -ForegroundColor Gray
-                
-                # 1. Connect the Container's ADB to the Phone
                 docker compose exec builder adb connect $deviceIp | Out-Null
-                
-                # 2. Install the APK
-                Write-Host "📲 Installing APK..." -ForegroundColor Magenta
                 docker compose exec builder adb -s $deviceIp install -r -d -t "debug/app-debug.apk"
-                
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "✨ App installed successfully (Wireless)!" -ForegroundColor Green
                     Play-AudioAlert -Event "Success"
-                } else {
-                    Write-Host "⚠️ Wireless Install failed." -ForegroundColor Red
-                    Play-AudioAlert -Event "Error"
                 }
-                
-                # 3. Clean up the connection
                 docker compose exec builder adb disconnect $deviceIp | Out-Null
-            } else {
-                Write-Host "⏭️ Skipped installation." -ForegroundColor Red
             }
         }
     }
 } else {
-    Write-Host "❌ FATAL: APK was not generated or could not be extracted from the volume." -ForegroundColor Red
+    Write-Host "❌ FATAL: APK was not generated." -ForegroundColor Red
     Play-AudioAlert -Event "Error"
 }
 Write-Host "`n✨ Process Complete.`n" -ForegroundColor Green
