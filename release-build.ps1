@@ -289,7 +289,6 @@ if (Test-Path $apkPath) {
         # ROUTE A: LOCAL ADB (For Power Users)
         # ----------------------------------------------------------------------
         $localAdb = Get-Command adb -ErrorAction SilentlyContinue
-        
         if ($localAdb) {
             Write-Host "🔍 Local ADB detected. Checking for connected USB devices..." -ForegroundColor Gray
             $adbDevices = & adb devices | Select-String -Pattern "\bdevice\b"
