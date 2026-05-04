@@ -2,6 +2,19 @@
 
 All notable changes to the **Alpha Cordova Android Build Engine** will be documented in this file.
 
+## [2.8.5] - 2026-05-04
+
+### Added
+- **Integrated Management Sub-Menu:** Refactored `Build-And-Install.bat` to include a dedicated "Container & Cache Management" menu, reducing main-menu clutter while expanding maintenance capabilities.
+- **Deep Purge Logic:** Integrated project-level wiping that utilizes a root-level Alpine Docker janitor to safely bypass Windows "Access Denied" permission locks on `platforms` and `plugins` folders.
+- **Global Disk Recovery:** Added a "Global Volume Prune" feature that force-stops all running containers and scrubs orphaned named volumes to reclaim gigabytes of system storage.
+
+### Changed
+- **Hardened Conflict Resolution:** Updated `release-build.ps1` to intelligently detect and revive stale containers automatically, preventing Docker "Name already in use" errors without interrupting active Always-On Turbo Sync sessions.
+
+### Fixed
+- **UX Improvements & Encoding:** Fixed UTF-8 emoji rendering issues by explicitly forcing `chcp 65001` and updating the PowerShell version check's output encoding. Escaped batch command separators (`&`) for a bulletproof CLI experience.
+
 ## [2.8.0] - 2026-04-22
 
 ### Added
@@ -35,7 +48,7 @@ All notable changes to the **Alpha Cordova Android Build Engine** will be docume
 ### Changed
 * **Turbo Sync Optimization:** Enhanced MD5-based "Turbo Sync" to skip the heavy compilation phase entirely if no changes are detected, while still allowing the user to proceed with deployment/installation.
 * **Unified UI:** Synchronized the look, feel, and logic across both `build-and-install.bat` and `Production-Release.bat` for a cohesive developer experience.
-* **Gradle Injection:** Moved `GRADLE_OPTS` into environment variables via `docker compose run -e`, bypassing CLI parsing issues and improving memory allocation ($2048$MB heap).
+* **Gradle Injection:** Moved `GRADLE_OPTS` into environment variables via `docker compose run -e`, bypassing CLI parsing issues and improving memory allocation (2048MB heap).
 
 ---
 
@@ -173,5 +186,3 @@ All notable changes to the **Alpha Cordova Android Build Engine** will be docume
 
 ### 📝 Documentation
 * Updated the main [README.md](https://github.com/remoorejr/alpha-cordova-v2-scripts/blob/main/README.md) to reflect the new versioning and added a "Quick Start" checklist for new users.
-
----
