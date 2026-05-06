@@ -85,19 +85,20 @@ if ($BuildMode -eq "VolPrune") {
 # BULLETPROOF CONFLICT RESOLUTION (Turbo-Friendly)
 # ==============================================================================
 $conflictName = "alpha-cordova-dev"
+$expectedProject = $env:COMPOSE_PROJECT_NAME
 
 # 1. Check if the name is taken by ANY container on the system
 $existingContainer = docker ps -aq -f "name=^/${conflictName}$"
 
 if ($existingContainer) {
-    $existingContainer = $existingContainer.Trim()
     
-    # 2. Ask Docker Compose if it owns this container in THIS specific directory
-    $composeOwner = docker compose ps -q builder 2>$null
-    if ($composeOwner) { $composeOwner = $composeOwner.Trim() }
+    # 2. Ask the Docker Daemon directly which Compose project owns this container
+    # This bypasses the formatting quirks of 'docker compose ps' by reading native labels
+    $actualProject = docker inspect --format='{{ index .Config.Labels "com.docker.compose.project" }}' $conflictName 2>$null
+    if ($actualProject) { $actualProject = $actualProject.Trim() }
     
-    if ($existingContainer -ne $composeOwner) {
-        Write-Host "`n⚠️  Rogue container detected: '$conflictName' belongs to a different session. Forcing removal..." -ForegroundColor Yellow
+    if ($actualProject -ne $expectedProject) {
+        Write-Host "`n⚠️  Rogue container detected: '$conflictName' belongs to project '$actualProject' (Expected: '$expectedProject'). Forcing removal..." -ForegroundColor Yellow
         docker rm -f $conflictName | Out-Null
     } else {
         # 3. It belongs to us. Is it active?
