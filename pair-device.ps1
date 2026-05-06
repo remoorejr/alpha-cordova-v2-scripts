@@ -15,6 +15,17 @@ param (
 Write-Host ''
 Write-Host '📱 [Android Wireless Debugging Initial Setup]' -ForegroundColor Cyan
 Write-Host '==================================================' -ForegroundColor Cyan
+
+# Pre-flight Check: Ensure the target container is actively running
+$containerStatus = (docker compose ps --services --filter 'status=running' 2>&1) -join ' '
+if ($containerStatus -notmatch 'builder') {
+    Write-Host '❌ ERROR: The Docker environment is offline.' -ForegroundColor Red
+    Write-Host 'The "builder" container must be actively running to establish an ADB bridge.' -ForegroundColor Yellow
+    Write-Host 'Please start your environment (e.g., via option [1] Full Reset) and try again.' -ForegroundColor Yellow
+    Write-Host ''
+    exit 1
+}
+
 Write-Host 'Ensure your Android device is on the same Wi-Fi network.'
 Write-Host 'Navigate to Developer Options -> Wireless Debugging -> Pair device with pairing code.'
 Write-Host '=================================================='
