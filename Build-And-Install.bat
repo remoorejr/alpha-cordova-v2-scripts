@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 :: Force the code page to UTF-8 immediately for emojis
 chcp 65001 > nul
 cd /d "%~dp0"
@@ -39,17 +39,19 @@ if exist ".turbo_ready" (
     echo  [2] 🚀 [90mTurbo Sync: (Disabled - Full Reset Required^)[0m
 )
 
-echo  [3] 🛠️  Container ^& Cache Management...
-echo  [4] ❌ Exit
+echo  [3] 🔌 Pair Android Device (Wireless)
+echo  [4] 🛠️  Container ^& Cache Management...
+echo  [5] ❌ Exit
 echo.
 
 set "choice="
-set /p choice="👉 Select an option (1-4): "
+set /p choice="👉 Select an option (1-5): "
 
 if "%choice%"=="1" goto :full_build
 if "%choice%"=="2" goto :check_turbo
-if "%choice%"=="3" goto :mgmt_menu
-if "%choice%"=="4" goto :eof
+if "%choice%"=="3" goto :pair_device
+if "%choice%"=="4" goto :mgmt_menu
+if "%choice%"=="5" goto :eof
 goto :menu
 
 :mgmt_menu
@@ -90,6 +92,10 @@ goto :end
 
 :turbo_sync
 powershell.exe -ExecutionPolicy Bypass -File ".\release-build.ps1" -Quick -Install -BatchMode
+goto :end
+
+:pair_device
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\pair-device.ps1"
 goto :end
 
 :shutdown
