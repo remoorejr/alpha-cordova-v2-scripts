@@ -15,6 +15,16 @@ param (
 )
 
 # ==============================================================================
+# ENVIRONMENT LOCKDOWN
+# ==============================================================================
+# Force terminal to UTF8 and create the No-BOM encoder
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($False)
+
+# Lock the Docker Compose Project Name to prevent Admin/UAC path-shifting restarts
+$env:COMPOSE_PROJECT_NAME = "alphacordova"
+
+# ==============================================================================
 # ENGINE MANAGEMENT TASKS
 # ==============================================================================
 
@@ -103,10 +113,6 @@ if ($existingContainer) {
 
 # Ensure the background Dev Container is running (redirect errors to null to keep console clean)
 docker compose up -d builder 2>&1 | Out-Null
-
-# Force terminal to UTF8 and create the No-BOM encoder
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$Utf8NoBom = New-Object System.Text.UTF8Encoding($False)
 
 # ==============================================================================
 # AUDIO INTERFACE
@@ -326,7 +332,9 @@ if (Test-Path $apkPath) {
             
             # Check for existing active wireless sessions inside the container
             $adbOutput = docker compose exec builder adb devices
-            $deviceLine = $adbOutput | Where-Object { $_ -match "\bdevice\b" -and $_ -notmatch "List of" } | Select-Object -First 1
+            
+            # Refined filter: Ignores devices in the "offline" state which happens when screens lock
+            $deviceLine = $adbOutput | Where-Object { $_ -match "\bdevice\b" -and $_ -notmatch "offline" -and $_ -notmatch "List of" } | Select-Object -First 1
             $activeDevice = $null
             
             if ($deviceLine) {
@@ -361,10 +369,8 @@ if (Test-Path $apkPath) {
                     Play-AudioAlert -Event "Success"
                 } else {
                     Write-Host "❌ App installation failed." -ForegroundColor Red
+                    Write-Host "💡 TIP: Ensure your device screen is unlocked. Android will aggressively sever debugging connections if the device goes to sleep." -ForegroundColor Yellow
                 }
-                
-                # We intentionally DO NOT execute 'adb disconnect' here. 
-                # This keeps the TCP bridge alive for subsequent Turbo Syncs.
             }
         }
     }
