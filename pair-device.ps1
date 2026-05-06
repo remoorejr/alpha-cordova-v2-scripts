@@ -4,6 +4,9 @@
 # Execution: Runs entirely via Docker exec to strictly enforce container isolation.
 # ==============================================================================
 
+# Force PowerShell console to render UTF-8 characters (emojis) correctly
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 param (
     [Parameter(Mandatory=$false)]
     [string]$PairingAddress
