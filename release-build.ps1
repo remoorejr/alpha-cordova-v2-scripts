@@ -319,8 +319,8 @@ if (Test-Path $apkPath) {
         $configPath = Join-Path (Get-Location) "config.xml"
         if (Test-Path $configPath) {
             $xmlText = [System.IO.File]::ReadAllText($configPath)
-            # Regex to strictly match the id attribute inside the widget tag
-            if ($xmlText -match '<widget[^>]+id=["'']([^"'']+)["'']') {
+            # Regex to strictly match the id attribute inside the widget tag (preventing android= matches)
+            if ($xmlText -match '(?i)<widget[^>]*?\s+id=["'']([^"'']+)["'']') {
                 $packageId = $matches[1]
                 Write-Host "🔍 Auto-launch target identified: $packageId" -ForegroundColor Gray
             }
@@ -340,7 +340,7 @@ if (Test-Path $apkPath) {
                     Write-Host "✨ App installed successfully (Local USB)!" -ForegroundColor Green
                     if ($packageId) {
                         Write-Host "▶️ Starting app on device..." -ForegroundColor Gray
-                        & adb shell monkey -p $packageId -c android.intent.category.LAUNCHER 1 | Out-Null
+                        & adb shell monkey -p $packageId -c android.intent.category.LAUNCHER 1 *> $null
                     }
                     Play-AudioAlert -Event "Success"
                     $deployed = $true
@@ -392,7 +392,7 @@ if (Test-Path $apkPath) {
                     Write-Host "✨ App installed successfully (Wireless)!" -ForegroundColor Green
                     if ($packageId) {
                         Write-Host "▶️ Starting app on device..." -ForegroundColor Gray
-                        docker compose exec builder adb -s $activeDevice shell monkey -p $packageId -c android.intent.category.LAUNCHER 1 | Out-Null
+                        docker compose exec builder adb -s $activeDevice shell monkey -p $packageId -c android.intent.category.LAUNCHER 1 *> $null
                     }
                     Play-AudioAlert -Event "Success"
                 } else {
