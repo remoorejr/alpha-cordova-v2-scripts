@@ -313,6 +313,20 @@ if (Test-Path $apkPath) {
         $deployed = $false
         
         # ----------------------------------------------------------------------
+        # DYNAMIC PACKAGE ID EXTRACTION
+        # ----------------------------------------------------------------------
+        $packageId = ""
+        $configPath = Join-Path (Get-Location) "config.xml"
+        if (Test-Path $configPath) {
+            $xmlText = [System.IO.File]::ReadAllText($configPath)
+            # Regex to strictly match the id attribute inside the widget tag
+            if ($xmlText -match '<widget[^>]+id=["'']([^"'']+)["'']') {
+                $packageId = $matches[1]
+                Write-Host "🔍 Auto-launch target identified: $packageId" -ForegroundColor Gray
+            }
+        }
+        
+        # ----------------------------------------------------------------------
         # ROUTE A: LOCAL ADB (For Power Users)
         # ----------------------------------------------------------------------
         $localAdb = Get-Command adb -ErrorAction SilentlyContinue
@@ -324,6 +338,10 @@ if (Test-Path $apkPath) {
                 & adb install -r -d -t $apkPath
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "✨ App installed successfully (Local USB)!" -ForegroundColor Green
+                    if ($packageId) {
+                        Write-Host "▶️ Starting app on device..." -ForegroundColor Gray
+                        & adb shell monkey -p $packageId -c android.intent.category.LAUNCHER 1 | Out-Null
+                    }
                     Play-AudioAlert -Event "Success"
                     $deployed = $true
                 }
@@ -372,6 +390,10 @@ if (Test-Path $apkPath) {
                 docker compose exec builder adb -s $activeDevice install -r -d -t "debug/app-debug.apk"
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "✨ App installed successfully (Wireless)!" -ForegroundColor Green
+                    if ($packageId) {
+                        Write-Host "▶️ Starting app on device..." -ForegroundColor Gray
+                        docker compose exec builder adb -s $activeDevice shell monkey -p $packageId -c android.intent.category.LAUNCHER 1 | Out-Null
+                    }
                     Play-AudioAlert -Event "Success"
                 } else {
                     Write-Host "❌ App installation failed." -ForegroundColor Red
