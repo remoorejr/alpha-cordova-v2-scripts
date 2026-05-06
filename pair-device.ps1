@@ -12,6 +12,9 @@ param (
 # Force PowerShell console to render UTF-8 characters (emojis) correctly
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+# Lock the Docker Compose Project Name to prevent Admin/UAC path-shifting issues
+$env:COMPOSE_PROJECT_NAME = 'alphacordova'
+
 Write-Host ''
 Write-Host '📱 [Android Wireless Debugging Initial Setup]' -ForegroundColor Cyan
 Write-Host '==================================================' -ForegroundColor Cyan
