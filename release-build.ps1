@@ -85,23 +85,28 @@ if ($BuildMode -eq "VolPrune") {
 # BULLETPROOF CONFLICT RESOLUTION (Turbo-Friendly)
 # ==============================================================================
 $conflictName = "alpha-cordova-dev"
-$expectedProject = $env:COMPOSE_PROJECT_NAME
 
-# 1. Check if the name is taken by ANY container on the system
-$existingContainer = docker ps -aq -f "name=^/${conflictName}$"
+# 1. Does a container with this exact name exist? Get its absolute 64-character ID.
+$existingId = docker inspect --format='{{.Id}}' $conflictName 2>$null
 
-if ($existingContainer) {
+if ($existingId) {
+    $existingId = $existingId.Trim()
     
-    # 2. Ask the Docker Daemon directly which Compose project owns this container
-    # This bypasses the formatting quirks of 'docker compose ps' by reading native labels
-    $actualProject = docker inspect --format='{{ index .Config.Labels "com.docker.compose.project" }}' $conflictName 2>$null
-    if ($actualProject) { $actualProject = $actualProject.Trim() }
+    # 2. Ask Docker Compose if it owns a 'builder' container in the current 'alphacordova' project.
+    #    If it does, get its absolute 64-character ID to normalize formatting.
+    $composeShortId = docker compose ps -q builder 2>$null
+    $composeId = ""
+    if ($composeShortId) {
+        $composeId = docker inspect --format='{{.Id}}' $composeShortId.Trim() 2>$null
+        if ($composeId) { $composeId = $composeId.Trim() }
+    }
     
-    if ($actualProject -ne $expectedProject) {
-        Write-Host "`n⚠️  Rogue container detected: '$conflictName' belongs to project '$actualProject' (Expected: '$expectedProject'). Forcing removal..." -ForegroundColor Yellow
+    # 3. Compare the absolute IDs
+    if ($existingId -ne $composeId) {
+        Write-Host "`n⚠️  Rogue container detected: '$conflictName' belongs to a different session or legacy project. Forcing removal..." -ForegroundColor Yellow
         docker rm -f $conflictName | Out-Null
     } else {
-        # 3. It belongs to us. Is it active?
+        # 4. It belongs to us. Is it active?
         $containerStatus = docker inspect --format='{{.State.Status}}' $conflictName 2>$null
         if ($containerStatus -match "running") {
             # Keep it alive for Turbo speed!
