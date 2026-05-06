@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 REM ==============================================================================
 REM Script: pair-device.bat
 REM Description: Windows Batch wrapper to securely invoke pair-device.ps1.

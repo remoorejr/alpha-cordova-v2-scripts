@@ -1,16 +1,16 @@
-# ==============================================================================
+﻿# ==============================================================================
 # Script: pair-device.ps1
 # Description: One-time interactive ADB pairing for new Android 11+ devices.
 # Execution: Runs entirely via Docker exec to strictly enforce container isolation.
 # ==============================================================================
 
-# Force PowerShell console to render UTF-8 characters (emojis) correctly
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-
 param (
     [Parameter(Mandatory=$false)]
     [string]$PairingAddress
 )
+
+# Force PowerShell console to render UTF-8 characters (emojis) correctly
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 Write-Host ''
 Write-Host '📱 [Android Wireless Debugging Initial Setup]' -ForegroundColor Cyan
