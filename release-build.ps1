@@ -317,17 +317,54 @@ if (Test-Path $apkPath) {
                 }
             }
         }
+        
+        # ----------------------------------------------------------------------
+        # ROUTE B: CONTAINERIZED WIRELESS ADB
+        # ----------------------------------------------------------------------
         if (-not $deployed) {
             Write-Host "`n📱 [Wireless Deployment]" -ForegroundColor Cyan
-            $deviceIp = Read-Host "Enter Device IP and Port (e.g., 192.168.1.55:12345) or press Enter to skip"
-            if (-not [string]::IsNullOrWhiteSpace($deviceIp)) {
-                docker compose exec builder adb connect $deviceIp | Out-Null
-                docker compose exec builder adb -s $deviceIp install -r -d -t "debug/app-debug.apk"
+            
+            # Check for existing active wireless sessions inside the container
+            $adbOutput = docker compose exec builder adb devices
+            $deviceLine = $adbOutput | Where-Object { $_ -match "\bdevice\b" -and $_ -notmatch "List of" } | Select-Object -First 1
+            $activeDevice = $null
+            
+            if ($deviceLine) {
+                $activeDevice = ($deviceLine -split '\s+')[0].Trim()
+                Write-Host "🔗 Active wireless session detected: $activeDevice" -ForegroundColor Magenta
+            }
+            
+            if (-not $activeDevice) {
+                Write-Host "⚠️ No active wireless sessions found." -ForegroundColor Yellow
+                Write-Host "💡 NOTE: Use the CONNECTION Port from the main Wireless Debugging screen, NOT the Pairing Port." -ForegroundColor Gray
+                $deviceIp = Read-Host "Enter Connection IP and Port (e.g., 192.168.1.55:12345) or press Enter to skip"
+                
+                if (-not [string]::IsNullOrWhiteSpace($deviceIp)) {
+                    Write-Host "Connecting to $deviceIp..." -ForegroundColor Gray
+                    docker compose exec builder adb connect $deviceIp | Out-Null
+                    
+                    # Verify the connection was successfully established
+                    $verifyOutput = docker compose exec builder adb devices
+                    if ($verifyOutput -match "\bdevice\b" -and $verifyOutput -match $deviceIp) {
+                        $activeDevice = $deviceIp
+                    } else {
+                        Write-Host "❌ Connection failed. Ensure the IP/Port is correct and the device is paired." -ForegroundColor Red
+                    }
+                }
+            }
+
+            if ($activeDevice) {
+                Write-Host "📦 Pushing APK to device..." -ForegroundColor Gray
+                docker compose exec builder adb -s $activeDevice install -r -d -t "debug/app-debug.apk"
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "✨ App installed successfully (Wireless)!" -ForegroundColor Green
                     Play-AudioAlert -Event "Success"
+                } else {
+                    Write-Host "❌ App installation failed." -ForegroundColor Red
                 }
-                docker compose exec builder adb disconnect $deviceIp | Out-Null
+                
+                # We intentionally DO NOT execute 'adb disconnect' here. 
+                # This keeps the TCP bridge alive for subsequent Turbo Syncs.
             }
         }
     }
@@ -336,4 +373,3 @@ if (Test-Path $apkPath) {
     Play-AudioAlert -Event "Error"
 }
 Write-Host "`n✨ Process Complete.`n" -ForegroundColor Green
-
