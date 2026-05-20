@@ -335,7 +335,21 @@ if (Test-Path $apkPath) {
             $adbDevices = & adb devices | Select-String -Pattern "\bdevice\b"
             if ($adbDevices) {
                 Write-Host "🔗 USB Device found! Installing via Local ADB..." -ForegroundColor Magenta
-                & adb install -r -d -t $apkPath
+                
+                # Intercept installation output to trap signature mismatch exceptions
+                $localAdbOut = & adb install -r -d -t $apkPath 2>&1
+                Write-Host $localAdbOut
+                
+                if ($localAdbOut -match "INSTALL_FAILED_UPDATE_INCOMPATIBLE") {
+                    Write-Host "⚠️ Signature collision encountered! App belongs to another session." -ForegroundColor Yellow
+                    if ($packageId) {
+                        Write-Host "🗑️ Performing forced clean purge: adb uninstall $packageId" -ForegroundColor Yellow
+                        & adb uninstall $packageId | Out-Null
+                        Write-Host "🔄 Re-executing deployment channel..." -ForegroundColor Gray
+                        & adb install -r -d -t $apkPath
+                    }
+                }
+                
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "✨ App installed successfully (Local USB)!" -ForegroundColor Green
                     if ($packageId) {
@@ -387,7 +401,21 @@ if (Test-Path $apkPath) {
 
             if ($activeDevice) {
                 Write-Host "📦 Pushing APK to device..." -ForegroundColor Gray
-                docker compose exec builder adb -s $activeDevice install -r -d -t "debug/app-debug.apk"
+                
+                # Intercept containerized adb output to safeguard wireless pipelines
+                $wirelessOut = docker compose exec builder adb -s $activeDevice install -r -d -t "debug/app-debug.apk" 2>&1
+                Write-Host $wirelessOut
+                
+                if ($wirelessOut -match "INSTALL_FAILED_UPDATE_INCOMPATIBLE") {
+                    Write-Host "⚠️ Signature collision encountered over wireless link!" -ForegroundColor Yellow
+                    if ($packageId) {
+                        Write-Host "🗑️ Performing containerized remote package purge..." -ForegroundColor Gray
+                        docker compose exec builder adb -s $activeDevice uninstall $packageId | Out-Null
+                        Write-Host "🔄 Re-pushing application package..." -ForegroundColor Gray
+                        $wirelessOut = docker compose exec builder adb -s $activeDevice install -r -d -t "debug/app-debug.apk"
+                    }
+                }
+                
                 if ($LASTEXITCODE -eq 0) {
                     Write-Host "✨ App installed successfully (Wireless)!" -ForegroundColor Green
                     if ($packageId) {
