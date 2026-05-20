@@ -7,6 +7,7 @@ setlocal enabledelayedexpansion
 title Alpha Cordova Android: Debug Build Tool (API 36)
 
 :menu
+@echo off
 cls
 :: ============================================================================
 :: ALPHA CORDOVA SUITE - VERSION CHECK
@@ -55,6 +56,7 @@ if "%choice%"=="5" goto :eof
 goto :menu
 
 :mgmt_menu
+@echo off
 cls
 echo ===================================================
 echo 🛠️  Container ^& Cache Management
