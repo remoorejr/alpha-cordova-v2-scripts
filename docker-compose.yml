@@ -1,3 +1,5 @@
+name: alphacordova
+
 services:
   builder:
     container_name: alpha-cordova-dev
@@ -34,3 +36,4 @@ volumes:
   plugins_cache:
   sdk_platforms:
   sdk_build_tools:
+  
