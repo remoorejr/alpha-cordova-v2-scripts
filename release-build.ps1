@@ -1,5 +1,5 @@
 ﻿# ==============================================================================
-# Alpha Cordova V2 Build Engine (v2.8.5)
+# Alpha Cordova V2 Build Engine (v2.8.7)
 # Features: Asset Triage, Zero-Install Turbo Sync, Pre-Warming, Smart Deploy
 # ==============================================================================
 
@@ -84,7 +84,7 @@ if ($BuildMode -eq "VolPrune") {
 # ==============================================================================
 # BULLETPROOF CONFLICT RESOLUTION (Turbo-Friendly)
 # ==============================================================================
-$conflictName = "alpha-cordova-dev"
+$conflictName = "alphacordova-builder-1"
 
 # 1. Does a container with this exact name exist? Get its absolute 64-character ID.
 $existingId = docker inspect --format='{{.Id}}' $conflictName 2>$null
@@ -260,7 +260,17 @@ else {
     # ==============================================================================
     # FULL RESET & CACHE PRE-WARMING
     # ==============================================================================
-    Write-Host "🔄 Full Reset: Rebuilding Android Platform..." -ForegroundColor Magenta
+    Write-Host "🔄 Full Reset: Cleaning volumes and rebuilding Android Platform..." -ForegroundColor Magenta
+
+    if (Test-Path ".turbo_ready") { 
+        Remove-Item ".turbo_ready" -Force 
+    }
+
+    Write-Host "🛑 Purging existing engine volumes to guarantee clean state..." -ForegroundColor Gray
+    docker compose down -v
+
+    Write-Host "🔄 Initializing clean environment stack..." -ForegroundColor Gray
+    docker compose up -d builder 2>&1 | Out-Null
 
     # 🔥 NEW: The Automated Permission Shield
     # Force root to hand over the freshly created Docker volumes to our user
