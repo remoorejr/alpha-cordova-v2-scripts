@@ -144,12 +144,34 @@ function Play-AudioAlert {
 if (Test-Path "temp") {
     Write-Host "`n📂 Alpha Anywhere export detected in 'temp' directory. Migrating assets..." -ForegroundColor Cyan
     
-    # 1. Erase existing www directory
-    if (Test-Path "www") { Remove-Item -Path "www" -Recurse -Force }
-    
+    # 1. Erase existing www directory (preserving any .sh files first)
+    $preservedShFiles = @()
+    if (Test-Path "www") {
+        $preservedShFiles = Get-ChildItem -Path "www" -Filter "*.sh" -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+            @{
+                RelativePath = $_.FullName.Substring((Resolve-Path "www").Path.Length).TrimStart('\', '/')
+                Content      = [System.IO.File]::ReadAllBytes($_.FullName)
+            }
+        }
+        if ($preservedShFiles.Count -gt 0) {
+            Write-Host "🛡️  Preserving $($preservedShFiles.Count) .sh file(s) from www." -ForegroundColor Gray
+        }
+        Remove-Item -Path "www" -Recurse -Force
+    }
+
     # 2. Recreate www and use bulletproof copy logic
     New-Item -ItemType Directory -Path "www" -Force | Out-Null
     Get-ChildItem -Path "temp" | Copy-Item -Destination "www" -Recurse -Force
+
+    # 2b. Restore preserved .sh files (without clobbering ones from the new export)
+    foreach ($shFile in $preservedShFiles) {
+        $destPath = Join-Path "www" $shFile.RelativePath
+        if (-not (Test-Path $destPath)) {
+            $destDir = Split-Path $destPath -Parent
+            if ($destDir -and -not (Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir -Force | Out-Null }
+            [System.IO.File]::WriteAllBytes($destPath, $shFile.Content)
+        }
+    }
     
     # 3. Safely sanitize config.xml using Regex
     $tempConfig = Join-Path "www" "config.xml"
