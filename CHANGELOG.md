@@ -2,6 +2,10 @@
 
 All notable changes to the **Alpha Cordova Android Build Engine** will be documented in this file.
 
+## [2.8.6] - 2026-07-31
+## Changed
+- **Cordova Android 15.1.0:** Updated `release-build.ps1` and `production-build.ps1` to use Cordova Android v15.1.0 which was formally released by the Cordova team on 2026-07-22. Previous versions loaded Cordova Android v15.0.0.
+
 ## [2.8.5] - 2026-05-04
 
 ### Added

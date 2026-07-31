@@ -1,4 +1,4 @@
-## 🏗️ Architecture Overview (v2.8.2)
+## 🏗️ Architecture Overview (v2.8.6)
 This project utilizes a **Zero-Install, Persistent Docker Pipeline**. By wrapping the Android SDK, Gradle, and Cordova inside a Docker container, we eliminate "it works on my machine" issues caused by local environment drift. You do not need to install the Android SDK, Java, Gradle, or ADB on your local Windows machine.
 
 ### The Background Dev Container

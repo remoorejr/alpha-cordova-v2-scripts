@@ -12,7 +12,7 @@ cls
 :: ============================================================================
 :: ALPHA CORDOVA SUITE - VERSION CHECK
 :: ============================================================================
-set "CURRENT_VERSION=2.8.5"
+set "CURRENT_VERSION=2.8.6"
 set "VERSION_URL=https://raw.githubusercontent.com/remoorejr/alpha-cordova-v2-scripts/main/CHANGELOG.md"
 
 echo 🔄 [INFO] Checking for build suite updates...

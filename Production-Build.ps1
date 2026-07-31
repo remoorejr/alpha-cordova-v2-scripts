@@ -126,8 +126,8 @@ try {
     docker compose exec -u root $DOCKER_SERVICE sh -c $chownCmd
 
     # 4. Install Dependencies & Add Platform
-    Write-Host "   ➕ Installing Node Modules and Android 15.0.0..." -ForegroundColor Gray
-    docker compose exec $DOCKER_SERVICE sh -c "npm install && cordova platform add android@15.0.0 --nosave && chmod -R +x platforms/android/cordova"
+    Write-Host "   ➕ Installing Node Modules and Cordova Android 15.1.0..." -ForegroundColor Gray
+    docker compose exec $DOCKER_SERVICE sh -c "npm install && cordova platform add android@15.1.0 --nosave && chmod -R +x platforms/android/cordova"
     
     Write-Host "`n☕ Compiling Signed Release $PackageType..." -ForegroundColor Cyan
     $pkgFlag = if ($PackageType -eq "aab") { "-- --packageType=bundle" } else { "-- --packageType=apk" }

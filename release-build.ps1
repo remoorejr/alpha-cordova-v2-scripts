@@ -304,8 +304,8 @@ else {
     # Execute blindly inside the container since Windows can't see the volume
     docker compose exec builder sh -c "cordova platform remove android --force 2>/dev/null || true"
 
-    Write-Host "➕ Adding Android 15.0.0..." -ForegroundColor Gray
-    docker compose exec builder cordova platform add android@15.0.0
+    Write-Host "➕ Adding Android 15.1.0..." -ForegroundColor Gray
+    docker compose exec builder cordova platform add android@15.1.0
 
     Write-Host "🛠️ Running Standard Cordova Build..." -ForegroundColor Green
     docker compose exec builder cordova build android --debug

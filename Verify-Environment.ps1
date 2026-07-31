@@ -1,16 +1,16 @@
 ﻿<#
 .SYNOPSIS
-    Alpha Cordova Environment Diagnostic v2.8.1
+    Alpha Cordova Environment Diagnostic v2.8.6
     Optimized for Dockerized API 36 Workflows.
 #>
 
-Write-Host "--- Alpha Cordova v2.8.1 Environment Check ---" -ForegroundColor Cyan
+Write-Host "--- Alpha Cordova v2.8.6 Environment Check ---" -ForegroundColor Cyan
 
 $ready = $true
 
 # 1. PowerShell Check
 if ($PSVersionTable.PSVersion.Major -lt 7) {
-    Write-Host "[!] PowerShell 5.1 detected. v2.8.1 is compatible, but PS 7+ is faster." -ForegroundColor Yellow
+    Write-Host "[!] PowerShell 5.1 detected. v2.8.6 is compatible, but PS 7+ is faster." -ForegroundColor Yellow
 } else {
     Write-Host "[OK] PowerShell $($PSVersionTable.PSVersion.Major) detected." -ForegroundColor Green
 }
@@ -56,9 +56,9 @@ if ($env:JAVA_HOME -or $env:ANDROID_HOME) {
 # --- Final Summary ---
 Write-Host "`n------------------------------------"
 if ($ready) {
-    Write-Host " READY FOR ALPHA CORDOVA v2.8.1: YES " -BackgroundColor Green -ForegroundColor White
+    Write-Host " READY FOR ALPHA CORDOVA v2.8.6: YES " -BackgroundColor Green -ForegroundColor White
 } else {
-    Write-Host " READY FOR ALPHA CORDOVA v2.8.1: NO  " -BackgroundColor Red -ForegroundColor White
+    Write-Host " READY FOR ALPHA CORDOVA v2.8.6: NO  " -BackgroundColor Red -ForegroundColor White
     Write-Host " (Please fix [FAIL] items above before building) " -ForegroundColor Yellow
 }
 Write-Host "------------------------------------"
